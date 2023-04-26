@@ -10,6 +10,7 @@
 #include <array>
 #include <immintrin.h> // _pext
 #include <algorithm>
+#include <functional>
 
 class bitboard_t
 {
@@ -142,7 +143,8 @@ class bitboard_t::lookup_t
   std::array<block_t, 64> blocks;
 
 public:
-  constexpr bitboard_t
+//    constexpr
+  bitboard_t
   operator()(square_t square, bitboard_t occupied) const noexcept
   {
     const auto &block = blocks[square];

@@ -16,7 +16,7 @@ class bitboard_t
   using value_t = std::uint64_t;
 
   class iterator_t;
-  // class lookup_t;
+  class lookup_t;
 
   value_t _value;
 
@@ -102,8 +102,7 @@ public:
 
 class bitboard_t::iterator_t
 {
-  bitboard_t
-      _value;
+  bitboard_t _value;
 
 public:
   constexpr iterator_t(bitboard_t value) noexcept
@@ -132,29 +131,45 @@ constexpr bitboard_t::iterator_t bitboard_t::end() const noexcept
   return {0ull};
 }
 
-// class bitboard_t::lookup_t
-// {
-//   struct block_t
-//   {
-//     bitboard_t mask;
-//     std::vector<bitboard_t> data;
-//   };
+class bitboard_t::lookup_t
+{
+  struct block_t
+  {
+    bitboard_t mask;
+    std::vector<bitboard_t> data;
+  };
 
-//   static std::array<block_t, 64> blocks;
+  std::array<block_t, 64> blocks;
 
-// public:
-//   constexpr bitboard_t
-//   operator()(square_t square, bitboard_t occupied) const noexcept
-//   {
-//     const auto &block = blocks[square];
-//     const auto index = _pext_u64(occupied, block.mask);
-//     return block.data[index];
-//   }
-// };
+public:
+  constexpr bitboard_t
+  operator()(square_t square, bitboard_t occupied) const noexcept
+  {
+    const auto &block = blocks[square];
+    const auto index = _pext_u64(occupied, block.mask);
+    return block.data[index];
+  }
+};
 
 constexpr bitboard_t operator""_b(const char *data, size_t length)
 {
   return std::string_view{data, length};
+}
+
+constexpr bitboard_t operator""_f(const char* data, size_t length) noexcept {
+  constexpr auto mask = 0b100000001000000010000000100000001000000010000000100000001ull;
+  const auto view = std::string_view{data, length};
+  return std::transform_reduce(view.begin(), view.end(), 0ull, std::bit_or{}, [](char ch) {
+    return mask << (ch - 'a');
+  });
+}
+
+constexpr bitboard_t operator""_r(const char* data, size_t length) noexcept {
+  constexpr auto mask = 0b11111111ull;
+  const auto view = std::string_view{data, length};
+  return std::transform_reduce(view.begin(), view.end(), 0ull, std::bit_or{}, [](char ch) {
+    return mask << (ch - '1') * 8;
+  });
 }
 
 std::ostream &operator<<(std::ostream &stream, bitboard_t bitboard);

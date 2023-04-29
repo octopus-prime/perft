@@ -13,38 +13,36 @@ class bitboard
 
   class iterator_t;
 
-  value_t value;
+  value_t value_;
 
 public:
   constexpr bitboard(value_t value = 0ull) noexcept
-      : value{value} {}
+      : value_{value} {}
 
   constexpr explicit bitboard(square square) noexcept
-      : bitboard
-  {1ull << square} {}
+      : bitboard  {1ull << square} {}
 
   constexpr bitboard(std::string_view string)
-      : bitboard
-  {parse(string)} {}
+      : bitboard  {parse(string)} {}
 
   constexpr operator value_t() const noexcept
   {
-    return value;
+    return value_;
   }
 
   constexpr bool empty() const noexcept
   {
-    return !value;
+    return !value_;
   }
 
   constexpr auto count() const noexcept
   {
-    return std::popcount(value);
+    return std::popcount(value_);
   }
 
   constexpr square find() const noexcept
   {
-    return std::countr_zero(value);
+    return std::countr_zero(value_);
   }
 
   constexpr square pop() noexcept
@@ -56,53 +54,52 @@ public:
 
   constexpr void set(square square) noexcept
   {
-    value |= square;
+    value_ |= square;
   }
 
   constexpr void set(bitboard squares) noexcept
   {
-    value |= squares;
+    value_ |= squares;
   }
 
   constexpr void reset(square square) noexcept
   {
-    value &= ~square;
+    value_ &= ~square;
   }
 
   constexpr void reset(bitboard squares) noexcept
   {
-    value &= ~squares;
+    value_ &= ~squares;
   }
 
   constexpr void flip(square square) noexcept
   {
-    value ^= square;
+    value_ ^= square;
   }
 
   constexpr void flip(bitboard squares) noexcept
   {
-    value ^= squares;
+    value_ ^= squares;
   }
 
   constexpr bool operator[](square square) const noexcept {
-    return value & bitboard
-{square};
+    return value_ & bitboard{square};
   }
 
   constexpr void operator|=(bitboard squares) noexcept {
-    value |= squares;
+    value_ |= squares;
   }
 
   constexpr void operator&=(bitboard squares) noexcept {
-    value &= squares;
+    value_ &= squares;
   }
 
   constexpr void operator<<=(std::integral auto shift) noexcept {
-    value <<= shift;
+    value_ <<= shift;
   }
 
   constexpr void operator>>=(std::integral auto shift) noexcept {
-    value >>= shift;
+    value_ >>= shift;
   }
 
   constexpr iterator_t begin() const noexcept;
@@ -142,7 +139,7 @@ public:
 
 constexpr bitboard::iterator_t bitboard::begin() const noexcept
 {
-  return {value};
+  return {value_};
 }
 
 constexpr bitboard::iterator_t bitboard::end() const noexcept

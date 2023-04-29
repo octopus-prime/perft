@@ -5,16 +5,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-project(HelloWorld CXX)
+project(perft CXX)
 
- if(MSVC)
+if(MSVC)
 	message(STATUS "compiler=msvc")
-	add_compile_options(/Ox /arch:AVX2 /Gy)
+	add_compile_options(/Ox /arch:AVX2 /Gy /GL)
+	add_link_options(/LTCG)
 else()
 	message(STATUS "compiler=gcc")
 	add_compile_options(-O3 -march=native)
+	add_link_options(-flto)
 endif()
 
 file (GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ./src/*.cpp ./src/*.hpp)
 
-add_executable(HelloWorld ${SOURCES})
+add_executable(perft ${SOURCES})

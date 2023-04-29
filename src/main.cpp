@@ -1,14 +1,19 @@
-#include "bitboard.hpp"
-#include "square.hpp"
+#include "bitboards.hpp"
 #include <iostream>
 
 int main() {
   constexpr auto e4_s = "e4"_s;
   constexpr auto e4_b = "e4"_b;
+  const auto x = bitboards::knight(e4_s);
+  constexpr auto y = bitboards::knight(e4_b);
+  const auto z = bitboards::line("c3"_s, "f6"_s);
   try {
     std::cout << square_t{"b3"} << std::endl;
     std::cout << bitboard_t{"f6"_s} << std::endl;
     std::cout << bitboard_t{"f6f7f8"} << std::endl;
+    std::cout << x << std::endl;
+    std::cout << y << std::endl;
+    std::cout << z << std::endl;
   } catch (const std::exception &exception) {
     std::cerr << exception.what() << std::endl;
   }

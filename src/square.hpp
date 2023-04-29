@@ -31,6 +31,14 @@ public:
   constexpr auto rank() const noexcept {
     return _value / 8;
   }
+
+  constexpr void operator++() noexcept {
+    ++_value;
+  }
+
+  constexpr void operator+=(std::integral auto value) noexcept {
+    _value += value;
+  }
   
   static constexpr square_t parse(std::string_view string) {
     return {string.at(0) - 'a', string.at(1) - '1'};

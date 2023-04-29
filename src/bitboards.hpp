@@ -53,7 +53,7 @@ struct bitboards::slider_lookup_t
 
     std::array<block_t, 64> blocks;
 
-    constexpr bitboard_t
+    bitboard_t
     operator()(square_t square, bitboard_t occupied) const noexcept
     {
         const auto &block = blocks[square];
@@ -91,16 +91,16 @@ constexpr bitboard_t bitboards::expand(bitboard_t in, auto&& view) noexcept {
 }
 
 constexpr bitboard_t bitboards::king(bitboard_t in) noexcept {
-  static constexpr int shifts[] = {1, 8, 7, 9};
-  static constexpr bitboard_t masks_left[] = {~"a"_f, ~""_f, ~"h"_f, ~"a"_f};
-  static constexpr bitboard_t masks_right[] = {~"h"_f, ~""_f, ~"a"_f, ~"h"_f};
+  constexpr int shifts[] = {1, 8, 7, 9};
+  constexpr bitboard_t masks_left[] = {~"a"_f, ~""_f, ~"h"_f, ~"a"_f};
+  constexpr bitboard_t masks_right[] = {~"h"_f, ~""_f, ~"a"_f, ~"h"_f};
   return bitboards::expand(in, std::views::zip(shifts, masks_left, masks_right));
 }
 
 constexpr bitboard_t bitboards::knight(bitboard_t in) noexcept {
-  static constexpr int shifts[] = {10, 17, 15, 6};
-  static constexpr bitboard_t masks_left[] = {~"ab"_f, ~"a"_f, ~"h"_f, ~"gh"_f};
-  static constexpr bitboard_t masks_right[] = {~"gh"_f, ~"h"_f, ~"a"_f, ~"ab"_f};
+  constexpr int shifts[] = {10, 17, 15, 6};
+  constexpr bitboard_t masks_left[] = {~"ab"_f, ~"a"_f, ~"h"_f, ~"gh"_f};
+  constexpr bitboard_t masks_right[] = {~"gh"_f, ~"h"_f, ~"a"_f, ~"ab"_f};
   return expand(in, std::views::zip(shifts, masks_left, masks_right));
 }
 

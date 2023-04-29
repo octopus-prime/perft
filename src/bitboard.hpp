@@ -5,6 +5,7 @@
 #include <bit>
 #include <numeric>
 #include <ranges>
+#include <functional>
 
 class bitboard_t
 {

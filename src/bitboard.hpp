@@ -1,7 +1,6 @@
 #pragma once
 
 #include "square.hpp"
-#include "side.hpp"
 #include <bit>
 #include <numeric>
 #include <ranges>

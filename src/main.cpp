@@ -1,5 +1,14 @@
+#include "node.hpp"
 #include "bitboards.hpp"
 #include <iostream>
+
+void fooo() {
+    constexpr node parent("e2"_b, "e4"_b, 0, 0, 0, 0, 0, 0, 0);
+    node succ(parent);
+    succ.execute<WHITE>(move("e2"_s, "e4"_s));
+    std::array<move, 256> buffer;
+    auto moves = succ.generate<BLACK>(buffer);
+}
 
 int main() {
   constexpr auto e4_s = "e4"_s;
@@ -8,6 +17,7 @@ int main() {
   constexpr auto y = bitboards::knight(e4_b);
   const auto z = bitboards::line("c3"_s, "f6"_s);
   try {
+    fooo();
     std::cout << square{"b3"} << std::endl;
     std::cout << bitboard{"f6"_s} << std::endl;
     std::cout << bitboard{"f6f7f8"} << std::endl;

@@ -5,13 +5,13 @@
 #include <ostream>
 
 class square {
-  using value_t = std::uint8_t;
+  using value__t = std::uint8_t;
 
-  value_t value;
+  value__t value_;
 
 public:
   constexpr square(std::integral auto value) noexcept
-      : value{std::forward<value_t>(value)} {}
+      : value_{std::forward<value__t>(value)} {}
 
   constexpr square(std::integral auto file, std::integral auto rank) noexcept
       : square{8 * rank + file} {}
@@ -20,24 +20,24 @@ public:
       : square{parse(string)} {
   }
   
-  constexpr operator value_t() const noexcept {
-    return value;
+  constexpr operator value__t() const noexcept {
+    return value_;
   }
 
   constexpr auto file() const noexcept {
-    return value % 8;
+    return value_ % 8;
   }
 
   constexpr auto rank() const noexcept {
-    return value / 8;
+    return value_ / 8;
   }
 
   constexpr void operator++() noexcept {
-    ++value;
+    ++value_;
   }
 
   constexpr void operator+=(std::integral auto value) noexcept {
-    value += value;
+    value_ += value;
   }
   
   static constexpr square parse(std::string_view string) {

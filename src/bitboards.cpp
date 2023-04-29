@@ -58,11 +58,11 @@ constexpr uint64_t expand_bishops(uint64_t in, uint64_t empty) noexcept {
   return expand(in, empty, std::views::zip(shifts, masks_left, masks_right));
 }
 
-constexpr bitboard_t bitboards::permutation(bitboard_t iteration, bitboard_t mask) noexcept {
-  bitboard_t blockers = 0ull;
+constexpr bitboard bitboards::permutation(bitboard iteration, bitboard mask) noexcept {
+  bitboard blockers = 0ull;
   while (iteration != 0ull) {
     if ((iteration & 1ull) != 0ull) {
-      blockers |= bitboard_t{mask.find()};
+      blockers |= bitboard{mask.find()};
     }
     iteration >>= 1;
     mask &= (mask - 1ull);
@@ -86,28 +86,28 @@ constexpr bitboard_t bitboards::permutation(bitboard_t iteration, bitboard_t mas
 
 const bitboards::leaper_lookup_t bitboards::lookup_king = []() noexcept {
   bitboards::leaper_lookup_t v{};
-  for (square_t i = 0; i < 64; ++i)
-    v[i] = bitboards::king(bitboard_t{i});
+  for (square i = 0; i < 64; ++i)
+    v[i] = bitboards::king(bitboard{i});
   return v;
 }();
 
 const bitboards::leaper_lookup_t bitboards::lookup_knight = []() noexcept {
   bitboards::leaper_lookup_t v{};
-  for (square_t i = 0; i < 64; ++i)
-    v[i] = bitboards::knight(bitboard_t{i});
+  for (square i = 0; i < 64; ++i)
+    v[i] = bitboards::knight(bitboard{i});
   return v;
 }();
 
 const bitboards::slider_lookup_t bitboards::lookup_rook_queen = []() noexcept {
   std::array<bitboards::slider_lookup_t::block_t, 64> blocks {};
-  for (square_t i = 0; i < 64; ++i) {
-    bitboard_t board{i};
-    bitboard_t rooks = expand_rooks(board, ~0ull);
+  for (square i = 0; i < 64; ++i) {
+    bitboard board{i};
+    bitboard rooks = expand_rooks(board, ~0ull);
     auto size = rooks.count();
     blocks[i].data.resize(size);
     for (auto j = 0; j < size; ++j) {
-      bitboard_t blockers = permutation(j, rooks);
-      bitboard_t rooks2 = expand_rooks(board, ~blockers);
+      bitboard blockers = permutation(j, rooks);
+      bitboard rooks2 = expand_rooks(board, ~blockers);
       blocks[i].data[j] = rooks2;
     }
     blocks[i].mask = rooks;
@@ -117,14 +117,14 @@ const bitboards::slider_lookup_t bitboards::lookup_rook_queen = []() noexcept {
 
 const bitboards::slider_lookup_t bitboards::lookup_bishop_queen = []() noexcept {
   std::array<bitboards::slider_lookup_t::block_t, 64> blocks {};
-  for (square_t i = 0; i < 64; ++i) {
-    bitboard_t board = 1ull << i;
-    bitboard_t bishops = expand_bishops(board, ~0ull);
+  for (square i = 0; i < 64; ++i) {
+    bitboard board = 1ull << i;
+    bitboard bishops = expand_bishops(board, ~0ull);
     auto size = 1ull << bishops.count();
     blocks[i].data.resize(size);
     for (auto j = 0; j < size; ++j) {
-      bitboard_t blockers = permutation(j, bishops);
-      bitboard_t bishops2 = expand_bishops(board, ~blockers);
+      bitboard blockers = permutation(j, bishops);
+      bitboard bishops2 = expand_bishops(board, ~blockers);
       blocks[i].data[j] = bishops2;
     }
     blocks[i].mask = bishops;
@@ -134,18 +134,18 @@ const bitboards::slider_lookup_t bitboards::lookup_bishop_queen = []() noexcept 
 
 const bitboards::line_lookup_t bitboards::lookup_line = []() noexcept {
   bitboards::line_lookup_t x{};
-  for (square_t from = 0; from < 64; ++from) {
-    for (square_t to = 0; to < 64; ++to) {
-      x[from][to] = bitboard_t{from} | bitboard_t{to};
+  for (square from = 0; from < 64; ++from) {
+    for (square to = 0; to < 64; ++to) {
+      x[from][to] = bitboard{from} | bitboard{to};
       if (from == to)
         continue;
-      bitboard_t y = bitboards::bishop_queen(from, 0ull) | bitboards::rook_queen(from, 0ull);
+      bitboard y = bitboards::bishop_queen(from, 0ull) | bitboards::rook_queen(from, 0ull);
       if (!y[to])
         continue;
-      for (square_t square = from; square != to; ) {
-        x[from][to] |= bitboard_t{square_t{square & 63}};
-        square += (from.file() == to.file()) ? 0 : (from.file() > to.file()) ? -1 : +1;
-        square += (from.rank() == to.rank()) ? 0 : (from.rank() > to.rank()) ? -8 : +8;
+      for (square sq = from; sq != to; ) {
+        x[from][to] |= bitboard{square{sq & 63}};
+        sq += (from.file() == to.file()) ? 0 : (from.file() > to.file()) ? -1 : +1;
+        sq += (from.rank() == to.rank()) ? 0 : (from.rank() > to.rank()) ? -8 : +8;
       }
     }
   }

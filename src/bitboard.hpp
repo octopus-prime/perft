@@ -7,151 +7,155 @@
 #include <ranges>
 #include <functional>
 
-class bitboard_t
+class bitboard
 {
   using value_t = std::uint64_t;
 
   class iterator_t;
 
-  value_t _value;
+  value_t value;
 
 public:
-  constexpr bitboard_t(value_t _value = 0ull) noexcept
-      : _value{_value} {}
+  constexpr bitboard(value_t value = 0ull) noexcept
+      : value{value} {}
 
-  constexpr explicit bitboard_t(square_t square) noexcept
-      : bitboard_t{1ull << square} {}
+  constexpr explicit bitboard(square square) noexcept
+      : bitboard
+  {1ull << square} {}
 
-  constexpr bitboard_t(std::string_view string)
-      : bitboard_t{parse(string)} {}
+  constexpr bitboard(std::string_view string)
+      : bitboard
+  {parse(string)} {}
 
   constexpr operator value_t() const noexcept
   {
-    return _value;
+    return value;
   }
 
   constexpr bool empty() const noexcept
   {
-    return !_value;
+    return !value;
   }
 
   constexpr auto count() const noexcept
   {
-    return std::popcount(_value);
+    return std::popcount(value);
   }
 
-  constexpr square_t find() const noexcept
+  constexpr square find() const noexcept
   {
-    return std::countr_zero(_value);
+    return std::countr_zero(value);
   }
 
-  constexpr square_t pop() noexcept
+  constexpr square pop() noexcept
   {
-    square_t square = find();
+    square square = find();
     flip(square);
     return square;
   }
 
-  constexpr void set(square_t square) noexcept
+  constexpr void set(square square) noexcept
   {
-    _value |= square;
+    value |= square;
   }
 
-  constexpr void set(bitboard_t squares) noexcept
+  constexpr void set(bitboard squares) noexcept
   {
-    _value |= squares;
+    value |= squares;
   }
 
-  constexpr void reset(square_t square) noexcept
+  constexpr void reset(square square) noexcept
   {
-    _value &= ~square;
+    value &= ~square;
   }
 
-  constexpr void reset(bitboard_t squares) noexcept
+  constexpr void reset(bitboard squares) noexcept
   {
-    _value &= ~squares;
+    value &= ~squares;
   }
 
-  constexpr void flip(square_t square) noexcept
+  constexpr void flip(square square) noexcept
   {
-    _value ^= square;
+    value ^= square;
   }
 
-  constexpr void flip(bitboard_t squares) noexcept
+  constexpr void flip(bitboard squares) noexcept
   {
-    _value ^= squares;
+    value ^= squares;
   }
 
-  constexpr bool operator[](square_t square) const noexcept {
-    return _value & bitboard_t{square};
+  constexpr bool operator[](square square) const noexcept {
+    return value & bitboard
+{square};
   }
 
-  constexpr void operator|=(bitboard_t squares) noexcept {
-    _value |= squares;
+  constexpr void operator|=(bitboard squares) noexcept {
+    value |= squares;
   }
 
-  constexpr void operator&=(bitboard_t squares) noexcept {
-    _value &= squares;
+  constexpr void operator&=(bitboard squares) noexcept {
+    value &= squares;
   }
 
   constexpr void operator<<=(std::integral auto shift) noexcept {
-    _value <<= shift;
+    value <<= shift;
   }
 
   constexpr void operator>>=(std::integral auto shift) noexcept {
-    _value >>= shift;
+    value >>= shift;
   }
 
   constexpr iterator_t begin() const noexcept;
 
   constexpr iterator_t end() const noexcept;
 
-  static constexpr bitboard_t
+  static constexpr bitboard
   parse(std::string_view string)
   {
     auto view = string | std::views::chunk(2);
     return std::transform_reduce(view.begin(), view.end(), 0ull, std::bit_or{}, [](auto &&chunk)
-                                 { return bitboard_t{square_t{std::string_view{chunk.data(), chunk.size()}}}; });
+                                 { return bitboard
+                              {square{std::string_view{chunk.data(), chunk.size()}}}; });
   }
 };
 
-class bitboard_t::iterator_t
+class bitboard::iterator_t
 {
-  bitboard_t _value;
+  bitboard value;
 
 public:
-  constexpr iterator_t(bitboard_t value) noexcept
-      : _value(value) {}
+  constexpr iterator_t(bitboard value) noexcept
+      : value(value) {}
 
   constexpr void operator++() const noexcept {}
 
   constexpr bool operator!=(iterator_t) const noexcept
   {
-    return !_value.empty();
+    return !value.empty();
   }
 
-  constexpr square_t operator*() noexcept
+  constexpr square operator*() noexcept
   {
-    return _value.pop();
+    return value.pop();
   }
 };
 
-constexpr bitboard_t::iterator_t bitboard_t::begin() const noexcept
+constexpr bitboard::iterator_t bitboard::begin() const noexcept
 {
-  return {_value};
+  return {value};
 }
 
-constexpr bitboard_t::iterator_t bitboard_t::end() const noexcept
+constexpr bitboard::iterator_t bitboard::end() const noexcept
 {
   return {0ull};
 }
 
-constexpr bitboard_t operator""_b(const char *data, size_t length)
+constexpr bitboard operator""_b(const char *data, size_t length)
 {
   return std::string_view{data, length};
 }
 
-constexpr bitboard_t operator""_f(const char *data, size_t length) noexcept
+constexpr bitboard operator""_f(const char *data, size_t length) noexcept
 {
   constexpr auto mask = 0b100000001000000010000000100000001000000010000000100000001ull;
   const auto view = std::string_view{data, length};
@@ -159,7 +163,7 @@ constexpr bitboard_t operator""_f(const char *data, size_t length) noexcept
                                { return mask << (ch - 'a'); });
 }
 
-constexpr bitboard_t operator""_r(const char *data, size_t length) noexcept
+constexpr bitboard operator""_r(const char *data, size_t length) noexcept
 {
   constexpr auto mask = 0b11111111ull;
   const auto view = std::string_view{data, length};
@@ -167,4 +171,4 @@ constexpr bitboard_t operator""_r(const char *data, size_t length) noexcept
                                { return mask << (ch - '1') * 8; });
 }
 
-std::ostream &operator<<(std::ostream &stream, bitboard_t bitboard);
+std::ostream &operator<<(std::ostream &stream, bitboard bitboard);

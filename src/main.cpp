@@ -8,9 +8,9 @@ int main() {
   constexpr auto y = bitboards::knight(e4_b);
   const auto z = bitboards::line("c3"_s, "f6"_s);
   try {
-    std::cout << square_t{"b3"} << std::endl;
-    std::cout << bitboard_t{"f6"_s} << std::endl;
-    std::cout << bitboard_t{"f6f7f8"} << std::endl;
+    std::cout << square{"b3"} << std::endl;
+    std::cout << bitboard{"f6"_s} << std::endl;
+    std::cout << bitboard{"f6f7f8"} << std::endl;
     std::cout << x << std::endl;
     std::cout << y << std::endl;
     std::cout << z << std::endl;

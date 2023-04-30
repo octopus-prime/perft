@@ -4,7 +4,7 @@
 void fooo() {
     constexpr node parent("e2"_b, "e4"_b, 0, 0, 0, 0, 0, 0, 0);
     node succ(parent);
-    succ.execute<WHITE>(move("e2"_s, "e4"_s));
+    succ.execute<WHITE>(move(PAWN, "e2"_s, "e4"_s));
     succ.checkers<BLACK>();
     std::array<move, 256> buffer;
     auto moves = succ.generate<BLACK>(buffer);

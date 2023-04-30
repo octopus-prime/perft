@@ -7,5 +7,5 @@ static_assert(move{PAWN, "e2"_s, "e4"_s}.moved() == PAWN);
 static_assert(move{PAWN, "e2"_s, "e4"_s}.promoted() == EMPTY);
 
 std::ostream& operator<<(std::ostream& stream, move move) {
-    return stream << move.from() << move.to();
+    return stream << move.moved() << move.from() << move.to() << move.promoted();
 }

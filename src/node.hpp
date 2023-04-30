@@ -13,13 +13,13 @@ class node
     bitboard rook_queen_;
     bitboard bishop_queen_;
     bitboard knight_;
-    bitboard pawn;
+    bitboard pawn_;
     bitboard castle;
     bitboard en_passant;
 
 public:
     constexpr node(bitboard white, bitboard black, bitboard king, bitboard rook_queen, bitboard bishop_queen, bitboard knight, bitboard pawn, bitboard castle, bitboard en_passant) noexcept
-        : white(white), black(black), king_(king), rook_queen_(rook_queen), bishop_queen_(bishop_queen), knight_(knight), pawn(pawn), castle(castle), en_passant(en_passant) {}
+        : white(white), black(black), king_(king), rook_queen_(rook_queen), bishop_queen_(bishop_queen), knight_(knight), pawn_(pawn), castle(castle), en_passant(en_passant) {}
 
     constexpr bitboard occupied() const noexcept {
         return white | black;
@@ -51,6 +51,11 @@ public:
     }
 
     template <side_t side>
+    constexpr bitboard pawn() const noexcept {
+        return pawn_ & occupied<side>();
+    }
+
+    template <side_t side>
     constexpr bitboard attackers() const noexcept;
 
     template <side_t side>
@@ -74,20 +79,18 @@ constexpr bitboard node::attackers() const noexcept {
   out |= bitboards::knight(knight<side>());
   out |= bitboards::rook_queen(rook_queen<side>(), empty);
   out |= bitboards::bishop_queen(bishop_queen<side>(), empty);
-//   out |= expand_pawns(pawn & self);
+  out |= bitboards::pawn<side>(pawn<side>());
   return out;
 }
 
 template <side_t side>
 inline bitboard node::attackers(square square) const noexcept {
-  auto out = bitboards::king(square) & king<side>();
+  bitboard out = 0ull;
+  out |= bitboards::king(square) & king<side>();
   out |= bitboards::knight(square) & knight<side>();
   out |= bitboards::rook_queen(square, occupied()) & rook_queen<side>();
   out |= bitboards::bishop_queen(square, occupied()) & bishop_queen<side>();
-//   if constexpr (std::is_same_v<side, white_side>)
-//     out |= lookup_pawns_w[square] & (pawn & color);
-//   else
-//     out |= lookup_pawns_b[square] & (pawn & color);
+  out |= bitboards::pawn<~side>(square) & pawn<side>();
   return out;
 }
 

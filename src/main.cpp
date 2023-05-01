@@ -46,7 +46,7 @@ int main()
   const auto z = bitboards::line("c3"_s, "f6"_s);
   try
   {
-    std::locale::global(std::locale("de_DE.UTF-8"));
+    std::locale::global(std::locale("en_US.UTF-8"));
 
     std::cout << square{"b3"} << std::endl;
     std::cout << bitboard{"f6"_s} << std::endl;
@@ -60,7 +60,7 @@ int main()
     foo<WHITE>(current);
 
     auto time0 = std::chrono::high_resolution_clock::now();
-    auto count = bar<WHITE>(current, 6);
+    auto count = bar<WHITE>(current, 7);
     auto time1 = std::chrono::high_resolution_clock::now();
     auto time = duration_cast<as_floating_point>(time1 - time0).count();
     std::cout << "n = " << std::format("{:L}", count) << std::endl;

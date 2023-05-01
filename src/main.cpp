@@ -58,7 +58,7 @@ int main()
     foo<WHITE>(current);
 
     auto time0 = std::chrono::high_resolution_clock::now();
-    auto count = bar<WHITE>(current, 5);
+    auto count = bar<WHITE>(current, 6);
     auto time1 = std::chrono::high_resolution_clock::now();
     auto time = duration_cast<as_floating_point>(time1 - time0).count();
     std::cout << "n = " << count << std::endl;

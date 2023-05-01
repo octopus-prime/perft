@@ -19,9 +19,9 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     int index = 0;
 
     bitboard attacked = this->attackers<~side>();
-    bitboard checkers = this->checkers<side>();
-    bitboard pinned = 0ull; // this->pinned<side>();
-    bitboard valids = ~0ull;
+    // bitboard checkers = this->checkers<side>();
+    constexpr bitboard pinned = 0ull; // this->pinned<side>();
+    constexpr bitboard valids = ~0ull;
 
     const auto generate_king = [&]() noexcept
     {
@@ -68,10 +68,51 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
         }
     };
 
+    const auto generate_pawn = [&]() noexcept
+    {
+        bitboard sources = pawn<side>();// & ~pinned;
+        bitboard targets;
+
+        if (side == WHITE) {
+            targets = sources << 8 & ~occupied();    
+            for (square to : targets)
+                moves[index++] = {PAWN, to - 8, to};
+
+            targets = targets << 8 & ~occupied() & "4"_r;
+            for (square to : targets)
+                moves[index++] = {PAWN, to - 16, to};
+
+            targets = sources << 7 & ~"h"_f & occupied<~side>();
+            for (square to : targets)
+                moves[index++] = {PAWN, to - 7, to};
+
+            targets = sources << 9 & ~"a"_f & occupied<~side>();
+            for (square to : targets)
+                moves[index++] = {PAWN, to - 9, to};
+        } else {
+            targets = sources >> 8 & ~occupied();    
+            for (square to : targets)
+                moves[index++] = {PAWN, to + 8, to};
+
+            targets = targets >> 8 & ~occupied() & "5"_r;
+            for (square to : targets)
+                moves[index++] = {PAWN, to + 16, to};
+
+            targets = sources >> 7 & ~"a"_f & occupied<~side>();
+            for (square to : targets)
+                moves[index++] = {PAWN, to + 7, to};
+
+            targets = sources >> 9 & ~"h"_f & occupied<~side>();
+            for (square to : targets)
+                moves[index++] = {PAWN, to + 9, to};
+        }
+    };
+
     generate_king();
     generate_knight();
     generate_rook_queen();
     generate_bishop_queen();
+    generate_pawn();
 
     return moves.subspan(0, index);
 }
@@ -152,10 +193,12 @@ void node::execute(const move &move) noexcept
         if (side == WHITE)
         {
             white.flip(bitboard{from | to});
+            castle.reset(bitboard{"a1h1"_b & from});
         }
         else
         {
             black.flip(bitboard{from | to});
+            castle.reset(bitboard{"a8h8"_b & from});
         }
     };
 
@@ -163,6 +206,20 @@ void node::execute(const move &move) noexcept
     {
         remove(to);
         bishop_queen_.flip(bitboard{from | to});
+        if (side == WHITE)
+        {
+            white.flip(bitboard{from | to});
+        }
+        else
+        {
+            black.flip(bitboard{from | to});
+        }
+    };
+
+    const auto execute_pawn = [&](bitboard from, bitboard to) noexcept
+    {
+        remove(to);
+        pawn_.flip(bitboard{from | to});
         if (side == WHITE)
         {
             white.flip(bitboard{from | to});
@@ -188,6 +245,9 @@ void node::execute(const move &move) noexcept
         execute_rook(bitboard{move.from()}, bitboard{move.to()});
         break;
     case BISHOP:
+        execute_bishop(bitboard{move.from()}, bitboard{move.to()});
+        break;
+    case PAWN:
         execute_bishop(bitboard{move.from()}, bitboard{move.to()});
         break;
     }

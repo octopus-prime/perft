@@ -46,6 +46,8 @@ int main()
   const auto z = bitboards::line("c3"_s, "f6"_s);
   try
   {
+    std::locale::global(std::locale("de_DE.UTF-8"));
+
     std::cout << square{"b3"} << std::endl;
     std::cout << bitboard{"f6"_s} << std::endl;
     std::cout << bitboard{"f6f7f8"} << std::endl;
@@ -61,9 +63,9 @@ int main()
     auto count = bar<WHITE>(current, 6);
     auto time1 = std::chrono::high_resolution_clock::now();
     auto time = duration_cast<as_floating_point>(time1 - time0).count();
-    std::cout << "n = " << count << std::endl;
+    std::cout << "n = " << std::format("{:L}", count) << std::endl;
     std::cout << "t = " << time << std::endl;
-    std::cout << "p = " << size_t(count / time) << std::endl;
+    std::cout << "p = " << std::format("{:L}", size_t(count / time)) << std::endl;
     std::cout << std::endl;
   }
   catch (const std::exception &exception)

@@ -248,7 +248,7 @@ void node::execute(const move &move) noexcept
         execute_bishop(bitboard{move.from()}, bitboard{move.to()});
         break;
     case PAWN:
-        execute_bishop(bitboard{move.from()}, bitboard{move.to()});
+        execute_pawn(bitboard{move.from()}, bitboard{move.to()});
         break;
     }
 }

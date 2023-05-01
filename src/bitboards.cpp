@@ -13,71 +13,71 @@ constexpr bitboard bitboards::permutation(bitboard iteration, bitboard mask) noe
 }
 
 const bitboards::leaper_lookup_t bitboards::lookup_king = []() noexcept {
-  bitboards::leaper_lookup_t v{};
-  for (square i = 0; i < 64; ++i)
-    v[i] = bitboards::king(bitboard{i});
-  return v;
+  leaper_lookup_t lookup{};
+  for (square sq : ALL)
+    lookup[sq] = king(bitboard{sq});
+  return lookup;
 }();
 
 const bitboards::leaper_lookup_t bitboards::lookup_knight = []() noexcept {
-  bitboards::leaper_lookup_t v{};
-  for (square i = 0; i < 64; ++i)
-    v[i] = bitboards::knight(bitboard{i});
-  return v;
+  leaper_lookup_t lookup{};
+  for (square sq : ALL)
+    lookup[sq] = knight(bitboard{sq});
+  return lookup;
 }();
 
 const bitboards::leaper_lookup_t bitboards::lookup_pawn_white = []() noexcept {
-  bitboards::leaper_lookup_t v{};
-  for (square i = 0; i < 64; ++i)
-    v[i] = bitboards::pawn<WHITE>(bitboard{i});
-  return v;
+  leaper_lookup_t lookup{};
+  for (square sq : ALL)
+    lookup[sq] = pawn<WHITE>(bitboard{sq});
+  return lookup;
 }();
 
 const bitboards::leaper_lookup_t bitboards::lookup_pawn_black = []() noexcept {
-  bitboards::leaper_lookup_t v{};
-  for (square i = 0; i < 64; ++i)
-    v[i] = bitboards::pawn<BLACK>(bitboard{i});
-  return v;
+  leaper_lookup_t lookup{};
+  for (square sq : ALL)
+    lookup[sq] = pawn<BLACK>(bitboard{sq});
+  return lookup;
 }();
 
 const bitboards::slider_lookup_t bitboards::lookup_rook_queen = []() noexcept {
-  std::array<bitboards::slider_lookup_t::block_t, 64> blocks {};
-  for (square i = 0; i < 64; ++i) {
+  std::array<slider_lookup_t::block_t, 64> blocks {};
+  for (square i : ALL) {
     bitboard board{i};
     bitboard rooks = rook_queen(board, 0ull);
-    auto size = rooks.count();
+    auto size = 1ull << rooks.count();
     blocks[i].data.resize(size);
-    for (auto j = 0; j < size; ++j) {
+    for (std::uint64_t j = 0; j < size; ++j) {
       bitboard blockers = permutation(j, rooks);
       bitboard rooks2 = rook_queen(board, blockers);
       blocks[i].data[j] = rooks2;
     }
     blocks[i].mask = rooks;
   }
-  return bitboards::slider_lookup_t{blocks};
+  return slider_lookup_t{blocks};
 }();
 
 const bitboards::slider_lookup_t bitboards::lookup_bishop_queen = []() noexcept {
-  std::array<bitboards::slider_lookup_t::block_t, 64> blocks {};
-  for (square i = 0; i < 64; ++i) {
-    bitboard board = 1ull << i;
+  std::array<slider_lookup_t::block_t, 64> blocks {};
+  for (square i : ALL) {
+    bitboard board{i};
     bitboard bishops = bishop_queen(board, 0ull);
     auto size = 1ull << bishops.count();
     blocks[i].data.resize(size);
-    for (auto j = 0; j < size; ++j) {
+    for (std::uint64_t j = 0; j < size; ++j) {
       bitboard blockers = permutation(j, bishops);
       bitboard bishops2 = bishop_queen(board, blockers);
       blocks[i].data[j] = bishops2;
     }
     blocks[i].mask = bishops;
   }
-  return bitboards::slider_lookup_t{blocks};
+  return slider_lookup_t{blocks};
 }();
 
 const bitboards::line_lookup_t bitboards::lookup_line = []() noexcept {
   bitboards::line_lookup_t x{};
-  for (square from = 0; from < 64; ++from) {
-    for (square to = 0; to < 64; ++to) {
+  for (square from : ALL) {
+    for (square to : ALL) {
       x[from][to] = bitboard{from} | bitboard{to};
       if (from == to)
         continue;

@@ -18,6 +18,9 @@ class node
     bitboard en_passant;
 
 public:
+    constexpr node() noexcept
+        : white("1"_r), black("8"_r), king_("e1e8"_b), rook_queen_("a1d1h1a8d8h8"_b), bishop_queen_("c1d1f1c8d8f8"_b), knight_("b1g1b8g8"_b), pawn_(0ull/*"27"_r*/), castle("a1h1a8h8"_b), en_passant(0) {}
+
     constexpr node(bitboard white, bitboard black, bitboard king, bitboard rook_queen, bitboard bishop_queen, bitboard knight, bitboard pawn, bitboard castle, bitboard en_passant) noexcept
         : white(white), black(black), king_(king), rook_queen_(rook_queen), bishop_queen_(bishop_queen), knight_(knight), pawn_(pawn), castle(castle), en_passant(en_passant) {}
 

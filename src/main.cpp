@@ -1,13 +1,13 @@
 #include "node.hpp"
 #include <iostream>
 
-void fooo() {
-    constexpr node parent("e2"_b, "e4"_b, 0, 0, 0, 0, 0, 0, 0);
-    node succ(parent);
-    succ.execute<WHITE>(move(PAWN, "e2"_s, "e4"_s));
-    succ.checkers<BLACK>();
+void foo() {
+    constexpr node current;
     std::array<move, 256> buffer;
-    auto moves = succ.generate<BLACK>(buffer);
+    auto moves = current.generate<WHITE>(buffer);
+    for (const auto& move : moves) {
+        std::cout << move << std::endl;
+    }
 }
 
 int main() {
@@ -17,13 +17,13 @@ int main() {
   constexpr auto y = bitboards::knight(e4_b);
   const auto z = bitboards::line("c3"_s, "f6"_s);
   try {
-    fooo();
     std::cout << square{"b3"} << std::endl;
     std::cout << bitboard{"f6"_s} << std::endl;
     std::cout << bitboard{"f6f7f8"} << std::endl;
     std::cout << x << std::endl;
     std::cout << y << std::endl;
     std::cout << z << std::endl;
+    foo();
   } catch (const std::exception &exception) {
     std::cerr << exception.what() << std::endl;
   }

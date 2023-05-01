@@ -25,6 +25,8 @@ class bitboards
   static constexpr bitboard permutation(bitboard iteration, bitboard mask) noexcept;
 
 public:
+  static constexpr bitboard ALL = ~0ull;
+
   static bitboard line(square from, square to) noexcept;
 
   static bitboard king(square square) noexcept;

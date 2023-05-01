@@ -31,7 +31,7 @@ public:
 
   constexpr bool empty() const noexcept
   {
-    return !value_;
+    return value_ == 0ull;
   }
 
   constexpr auto count() const noexcept
@@ -53,7 +53,7 @@ public:
 
   constexpr void set(square square) noexcept
   {
-    value_ |= square;
+    value_ |= bitboard{square};
   }
 
   constexpr void set(bitboard squares) noexcept
@@ -63,7 +63,7 @@ public:
 
   constexpr void reset(square square) noexcept
   {
-    value_ &= ~square;
+    value_ &= ~bitboard{square};
   }
 
   constexpr void reset(bitboard squares) noexcept
@@ -73,7 +73,7 @@ public:
 
   constexpr void flip(square square) noexcept
   {
-    value_ ^= square;
+    value_ ^= bitboard{square};
   }
 
   constexpr void flip(bitboard squares) noexcept
@@ -117,22 +117,22 @@ public:
 
 class bitboard::iterator_t
 {
-  bitboard value;
+  bitboard value_;
 
 public:
   constexpr iterator_t(bitboard value) noexcept
-      : value(value) {}
+      : value_(value) {}
 
   constexpr void operator++() const noexcept {}
 
   constexpr bool operator!=(iterator_t) const noexcept
   {
-    return !value.empty();
+    return !value_.empty();
   }
 
   constexpr square operator*() noexcept
   {
-    return value.pop();
+    return value_.pop();
   }
 };
 

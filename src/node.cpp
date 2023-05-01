@@ -45,7 +45,7 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     const auto generate_rook_queen = [&]() noexcept
     {
         constexpr piece rook_or_queen[] = {ROOK, QUEEN};
-        bitboard sources = rook_queen<side>();// & ~pinned;
+        bitboard sources = rook_queen<side>(); // & ~pinned;
         for (square from : sources)
         {
             piece moved = rook_or_queen[bishop_queen<side>()[from]];
@@ -58,7 +58,7 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     const auto generate_bishop_queen = [&]() noexcept
     {
         constexpr piece bishop_or_queen[] = {BISHOP, QUEEN};
-        bitboard sources = bishop_queen<side>();// & ~pinned;
+        bitboard sources = bishop_queen<side>(); // & ~pinned;
         for (square from : sources)
         {
             piece moved = bishop_or_queen[rook_queen<side>()[from]];
@@ -82,6 +82,115 @@ template std::span<move> node::generate<BLACK>(std::span<move, 256> moves) const
 template <side_t side>
 void node::execute(const move &move) noexcept
 {
+    const auto remove = [&](bitboard to) noexcept
+    {
+        rook_queen_.reset(to);
+        bishop_queen_.reset(to);
+        knight_.reset(to);
+        pawn_.reset(to);
+        if (side == WHITE)
+        {
+            black.reset(to);
+            castle.reset(bitboard{"a8h8"_b & to});
+        }
+        else
+        {
+            white.reset(to);
+            castle.reset(bitboard{"a1h1"_b & to});
+        }
+    };
+
+    const auto execute_king = [&](bitboard from, bitboard to) noexcept
+    {
+        remove(to);
+        king_.flip(bitboard{from | to});
+        if (side == WHITE)
+        {
+            white.flip(bitboard{from | to});
+            castle.reset("a1h1"_b);
+        }
+        else
+        {
+            black.flip(bitboard{from | to});
+            castle.reset("a8h8"_b);
+        }
+    };
+
+    const auto execute_knight = [&](bitboard from, bitboard to) noexcept
+    {
+        remove(to);
+        knight_.flip(bitboard{from | to});
+        if (side == WHITE)
+        {
+            white.flip(bitboard{from | to});
+        }
+        else
+        {
+            black.flip(bitboard{from | to});
+        }
+    };
+
+    const auto execute_queen = [&](bitboard from, bitboard to) noexcept
+    {
+        remove(to);
+        rook_queen_.flip(bitboard{from | to});
+        bishop_queen_.flip(bitboard{from | to});
+        if (side == WHITE)
+        {
+            white.flip(bitboard{from | to});
+        }
+        else
+        {
+            black.flip(bitboard{from | to});
+        }
+    };
+
+    const auto execute_rook = [&](bitboard from, bitboard to) noexcept
+    {
+        remove(to);
+        rook_queen_.flip(bitboard{from | to});
+        if (side == WHITE)
+        {
+            white.flip(bitboard{from | to});
+        }
+        else
+        {
+            black.flip(bitboard{from | to});
+        }
+    };
+
+    const auto execute_bishop = [&](bitboard from, bitboard to) noexcept
+    {
+        remove(to);
+        bishop_queen_.flip(bitboard{from | to});
+        if (side == WHITE)
+        {
+            white.flip(bitboard{from | to});
+        }
+        else
+        {
+            black.flip(bitboard{from | to});
+        }
+    };
+
+    switch (move.moved())
+    {
+    case KING:
+        execute_king(bitboard{move.from()}, bitboard{move.to()});
+        break;
+    case KNIGHT:
+        execute_knight(bitboard{move.from()}, bitboard{move.to()});
+        break;
+    case QUEEN:
+        execute_queen(bitboard{move.from()}, bitboard{move.to()});
+        break;
+    case ROOK:
+        execute_rook(bitboard{move.from()}, bitboard{move.to()});
+        break;
+    case BISHOP:
+        execute_bishop(bitboard{move.from()}, bitboard{move.to()});
+        break;
+    }
 }
 
 template void node::execute<WHITE>(const move &move) noexcept;

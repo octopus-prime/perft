@@ -1,4 +1,5 @@
 #include "node.hpp"
+#include <utility>
 
 static_assert(sizeof(node) == 72, "node size is 72 bytes");
 static_assert(node("e2"_b, 0, 0, 0, 0, 0, 0, 0, 0).occupied<WHITE>() == "e2"_b);
@@ -7,9 +8,9 @@ static_assert(node("e2"_b, "e4"_b, 0, 0, 0, 0, 0, 0, 0).occupied() == "e2e4"_b);
 static_assert(node("e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0, 0).king<WHITE>() == "e2"_b);
 static_assert(node("e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0, 0).attackers<WHITE>() == bitboards::king("e2"_b));
 static_assert(node("e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0, 0).rook_queen<WHITE>() == "e2"_b);
-static_assert(node(0, "e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0).attackers<BLACK>() == bitboards::rook_queen("e2"_b, ~0ull));
+static_assert(node(0, "e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0).attackers<BLACK>() == bitboards::rook_queen("e2"_b, 0ull));
 static_assert(node(0, "e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0).bishop_queen<BLACK>() == "e2"_b);
-static_assert(node(0, "e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0).attackers<BLACK>() == bitboards::bishop_queen("e2"_b, ~0ull));
+static_assert(node(0, "e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0).attackers<BLACK>() == bitboards::bishop_queen("e2"_b, 0ull));
 static_assert(node(0, "e2"_b, 0, 0, 0, "e2"_b, 0, 0, 0).knight<BLACK>() == "e2"_b);
 static_assert(node(0, "e2"_b, 0, 0, 0, "e2"_b, 0, 0, 0).attackers<BLACK>() == bitboards::knight("e2"_b));
 
@@ -29,6 +30,20 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
         bitboard targets = bitboards::king(from) & ~occupied<side>() & ~attacked;
         for (square to : targets)
             moves[index++] = {KING, from, to};
+    };
+
+    const auto generate_castle = [&]() noexcept {
+        if (side == WHITE) {
+            if ((castle & "h1"_b) && !(occupied() & "f1g1"_b) && !(attacked & "e1f1g1"_b))
+                moves[index++] = {KING, "e1"_s, "g1"_s, CASTLE_SHORT};
+            if ((castle & "a1"_b) && !(occupied() & "b1c1d1"_b) && !(attacked & "e1d1c1"_b))
+                moves[index++] = {KING, "e1"_s, "c1"_s, CASTLE_LONG};
+        } else {
+            if ((castle & "h8"_b) && !(occupied() & "f8g8"_b) && !(attacked & "e8f8g8"_b))
+                moves[index++] = {KING, "e8"_s, "g8"_s, CASTLE_SHORT};
+            if ((castle & "a8"_b) && !(occupied() & "b8c8d8"_b) && !(attacked & "e8d8c8"_b))
+                moves[index++] = {KING, "e8"_s, "c8"_s, CASTLE_LONG};
+        }
     };
 
     const auto generate_knight = [&]() noexcept
@@ -70,45 +85,70 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
 
     const auto generate_pawn = [&]() noexcept
     {
-        bitboard sources = pawn<side>();// & ~pinned;
+        const auto generate_normal = [&](bitboard targets, int delta) noexcept
+        {
+            for (square to : targets)
+                moves[index++] = {PAWN, to + delta, to};
+        };
+
+        const auto generate_double_push = [&](bitboard targets, int delta) noexcept
+        {
+            for (square to : targets)
+                moves[index++] = {PAWN, to + delta, to, DOUBLE_PUSH};
+        };
+
+        const auto generate_promotion = [&](bitboard targets, int delta) noexcept
+        {
+            for (square to : targets)
+                for (special promotion : {PROMOTE_QUEEN, PROMOTE_ROOK, PROMOTE_BISHOP, PROMOTE_KNIGHT})
+                    moves[index++] = {PAWN, to + delta, to, promotion};
+        };
+
+        const bitboard sources = pawn<side>();// & ~pinned;
         bitboard targets;
 
         if (side == WHITE) {
-            targets = sources << 8 & ~occupied();    
-            for (square to : targets)
-                moves[index++] = {PAWN, to - 8, to};
+            targets = sources << 8 & ~occupied();
+            generate_normal(targets & ~"8"_r, -8);
+            generate_promotion(targets & "8"_r, -8);
 
             targets = targets << 8 & ~occupied() & "4"_r;
-            for (square to : targets)
-                moves[index++] = {PAWN, to - 16, to};
+            generate_double_push(targets, -16);
 
             targets = sources << 7 & ~"h"_f & occupied<~side>();
-            for (square to : targets)
-                moves[index++] = {PAWN, to - 7, to};
+            generate_normal(targets & ~"8"_r, -7);
+            generate_promotion(targets & "8"_r, -7);
 
             targets = sources << 9 & ~"a"_f & occupied<~side>();
-            for (square to : targets)
-                moves[index++] = {PAWN, to - 9, to};
+            generate_normal(targets & ~"8"_r, -9);
+            generate_promotion(targets & "8"_r, -9);
         } else {
             targets = sources >> 8 & ~occupied();    
-            for (square to : targets)
-                moves[index++] = {PAWN, to + 8, to};
+            generate_normal(targets & ~"1"_r, +8);
+            generate_promotion(targets & "1"_r, +8);
 
             targets = targets >> 8 & ~occupied() & "5"_r;
-            for (square to : targets)
-                moves[index++] = {PAWN, to + 16, to};
+            generate_double_push(targets, +16);
 
             targets = sources >> 7 & ~"a"_f & occupied<~side>();
-            for (square to : targets)
-                moves[index++] = {PAWN, to + 7, to};
+            generate_normal(targets & ~"1"_r, +7);
+            generate_promotion(targets & "1"_r, +7);
 
             targets = sources >> 9 & ~"h"_f & occupied<~side>();
-            for (square to : targets)
-                moves[index++] = {PAWN, to + 9, to};
+            generate_normal(targets & ~"1"_r, +9);
+            generate_promotion(targets & "1"_r, +9);
         }
+
+        // if (!en_passant.empty()) {
+            // auto ep_sq = en_passant.find();
+            bitboard board = sources & bitboards::pawn<~side>(en_passant);
+            for (square from : board)
+                moves[index++] = {PAWN, from, en_passant.find(), EN_PASSANT};
+        // }
     };
 
     generate_king();
+    generate_castle();
     generate_knight();
     generate_rook_queen();
     generate_bishop_queen();
@@ -123,7 +163,7 @@ template std::span<move> node::generate<BLACK>(std::span<move, 256> moves) const
 template <side_t side>
 void node::execute(const move &move) noexcept
 {
-    const auto remove = [&](bitboard to) noexcept
+    const auto remove = [this](bitboard to) noexcept
     {
         rook_queen_.reset(to);
         bishop_queen_.reset(to);
@@ -141,114 +181,282 @@ void node::execute(const move &move) noexcept
         }
     };
 
-    const auto execute_king = [&](bitboard from, bitboard to) noexcept
+    const bitboard from{move.from()};
+    const bitboard to{move.to()};
+    const bitboard squares{from | to};
+    en_passant = 0ull;
+
+    const auto execute_king = [&]() noexcept
     {
         remove(to);
-        king_.flip(bitboard{from | to});
+        king_.flip(squares);
         if (side == WHITE)
         {
-            white.flip(bitboard{from | to});
+            white.flip(squares);
             castle.reset("a1h1"_b);
         }
         else
         {
-            black.flip(bitboard{from | to});
+            black.flip(squares);
             castle.reset("a8h8"_b);
         }
     };
 
-    const auto execute_knight = [&](bitboard from, bitboard to) noexcept
+    const auto execute_castle_short = [&]() noexcept
     {
-        remove(to);
-        knight_.flip(bitboard{from | to});
         if (side == WHITE)
         {
-            white.flip(bitboard{from | to});
+            king_.flip("e1g1"_b);
+            rook_queen_.flip("h1f1"_b);
+            white.flip("e1f1g1h1"_b);
+            castle.reset("a1h1"_b);
         }
         else
         {
-            black.flip(bitboard{from | to});
+            king_.flip("e8g8"_b);
+            rook_queen_.flip("h8f8"_b);
+            black.flip("e8f8g8h8"_b);
+            castle.reset("a8h8"_b);
         }
     };
 
-    const auto execute_queen = [&](bitboard from, bitboard to) noexcept
+    const auto execute_castle_long = [&]() noexcept
     {
-        remove(to);
-        rook_queen_.flip(bitboard{from | to});
-        bishop_queen_.flip(bitboard{from | to});
         if (side == WHITE)
         {
-            white.flip(bitboard{from | to});
+            king_.flip("e1c1"_b);
+            rook_queen_.flip("a1d1"_b);
+            white.flip("a1c1d1e1"_b);
+            castle.reset("a1h1"_b);
         }
         else
         {
-            black.flip(bitboard{from | to});
+            king_.flip("e8c8"_b);
+            rook_queen_.flip("a8d8"_b);
+            black.flip("a8c8d8e8"_b);
+            castle.reset("a8h8"_b);
         }
     };
 
-    const auto execute_rook = [&](bitboard from, bitboard to) noexcept
+    const auto execute_knight = [&]() noexcept
     {
         remove(to);
-        rook_queen_.flip(bitboard{from | to});
+        knight_.flip(squares);
         if (side == WHITE)
         {
-            white.flip(bitboard{from | to});
+            white.flip(squares);
+        }
+        else
+        {
+            black.flip(squares);
+        }
+    };
+
+    const auto execute_queen = [&]() noexcept
+    {
+        remove(to);
+        rook_queen_.flip(squares);
+        bishop_queen_.flip(squares);
+        if (side == WHITE)
+        {
+            white.flip(squares);
+        }
+        else
+        {
+            black.flip(squares);
+        }
+    };
+
+    const auto execute_rook = [&]() noexcept
+    {
+        remove(to);
+        rook_queen_.flip(squares);
+        if (side == WHITE)
+        {
+            white.flip(squares);
             castle.reset(bitboard{"a1h1"_b & from});
         }
         else
         {
-            black.flip(bitboard{from | to});
+            black.flip(squares);
             castle.reset(bitboard{"a8h8"_b & from});
         }
     };
 
-    const auto execute_bishop = [&](bitboard from, bitboard to) noexcept
+    const auto execute_bishop = [&]() noexcept
     {
         remove(to);
-        bishop_queen_.flip(bitboard{from | to});
+        bishop_queen_.flip(squares);
         if (side == WHITE)
         {
-            white.flip(bitboard{from | to});
+            white.flip(squares);
         }
         else
         {
-            black.flip(bitboard{from | to});
+            black.flip(squares);
         }
     };
 
-    const auto execute_pawn = [&](bitboard from, bitboard to) noexcept
+    const auto execute_pawn = [&]() noexcept
     {
         remove(to);
-        pawn_.flip(bitboard{from | to});
+        pawn_.flip(squares);
         if (side == WHITE)
         {
-            white.flip(bitboard{from | to});
+            white.flip(squares);
         }
         else
         {
-            black.flip(bitboard{from | to});
+            black.flip(squares);
+        }
+    };
+
+    const auto execute_promote_queen = [&]() noexcept
+    {
+        remove(to);
+        pawn_.flip(from);
+        rook_queen_.flip(to);
+        bishop_queen_.flip(to);
+        if (side == WHITE)
+        {
+            white.flip(squares);
+        }
+        else
+        {
+            black.flip(squares);
+        }
+    };
+
+    const auto execute_promote_rook = [&]() noexcept
+    {
+        remove(to);
+        pawn_.flip(from);
+        rook_queen_.flip(to);
+        if (side == WHITE)
+        {
+            white.flip(squares);
+        }
+        else
+        {
+            black.flip(squares);
+        }
+    };
+
+    const auto execute_promote_bishop = [&]() noexcept
+    {
+        remove(to);
+        pawn_.flip(from);
+        bishop_queen_.flip(to);
+        if (side == WHITE)
+        {
+            white.flip(squares);
+        }
+        else
+        {
+            black.flip(squares);
+        }
+    };
+
+    const auto execute_promote_knight = [&]() noexcept
+    {
+        remove(to);
+        pawn_.flip(from);
+        knight_.flip(to);
+        if (side == WHITE)
+        {
+            white.flip(squares);
+        }
+        else
+        {
+            black.flip(squares);
+        }
+    };
+
+    const auto execute_double_push = [&]() noexcept
+    {
+        pawn_.flip(squares);
+        if (side == WHITE)
+        {
+            white.flip(squares);
+            en_passant = to >> 8;
+        }
+        else
+        {
+            black.flip(squares);
+            en_passant = to << 8;
+        }
+    };
+
+    const auto execute_en_passant = [&]() noexcept
+    {
+        pawn_.flip(squares);
+        if (side == WHITE)
+        {
+            white.flip(squares);
+            remove(to >> 8);
+        }
+        else
+        {
+            black.flip(squares);
+            remove(to << 8);
         }
     };
 
     switch (move.moved())
     {
     case KING:
-        execute_king(bitboard{move.from()}, bitboard{move.to()});
+        switch (move.flag()) {
+        case NONE: [[likely]]
+            execute_king();
+            break;
+        case CASTLE_SHORT:
+            execute_castle_short();
+            break;
+        case CASTLE_LONG:
+            execute_castle_long();
+            break;
+        default:
+            std::unreachable();
+        }
         break;
     case KNIGHT:
-        execute_knight(bitboard{move.from()}, bitboard{move.to()});
+        execute_knight();
         break;
     case QUEEN:
-        execute_queen(bitboard{move.from()}, bitboard{move.to()});
+        execute_queen();
         break;
     case ROOK:
-        execute_rook(bitboard{move.from()}, bitboard{move.to()});
+        execute_rook();
         break;
     case BISHOP:
-        execute_bishop(bitboard{move.from()}, bitboard{move.to()});
+        execute_bishop();
         break;
     case PAWN:
-        execute_pawn(bitboard{move.from()}, bitboard{move.to()});
+        switch (move.flag()) {
+        case NONE: [[likely]]
+            execute_pawn();
+            break;
+        case PROMOTE_QUEEN:
+            execute_promote_queen();
+            break;
+        case PROMOTE_ROOK:
+            execute_promote_rook();
+            break;  
+        case PROMOTE_BISHOP:
+            execute_promote_bishop();
+            break;
+        case PROMOTE_KNIGHT:
+            execute_promote_knight();
+            break;
+        case DOUBLE_PUSH:
+            execute_double_push();
+            break;
+        case EN_PASSANT:
+            execute_en_passant();
+            break;
+        default:
+            std::unreachable();
+        }
         break;
     }
 }

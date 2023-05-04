@@ -20,9 +20,48 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     int index = 0;
 
     bitboard attacked = this->attackers<~side>();
-    // bitboard checkers = this->checkers<side>();
-    constexpr bitboard pinned = 0ull; // this->pinned<side>();
-    constexpr bitboard valids = ~0ull;
+    bitboard checkers = this->checkers<side>();
+    bitboard valids = ~0ull;
+
+    bitboard pinned = 0ull; // this->pinned<side>();
+    // bitboard valid_r = 0ull;
+    // bitboard valid_b = 0ull;
+    bitboard valid_for_pinned[64];
+  std::fill_n(valid_for_pinned, 64, ~0ull);
+
+  const auto generate_pinned = [&]() noexcept {
+    square ksq = king<side>().find();
+    bitboard ksr = bitboards::rook_queen(ksq, occupied()) & occupied<side>();
+    bitboard ksb = bitboards::bishop_queen(ksq, occupied()) & occupied<side>();
+    bitboard bcr = bitboards::rook_queen(ksq, 0ull) & rook_queen<~side>();
+    bitboard bcb = bitboards::bishop_queen(ksq, 0ull) & bishop_queen<~side>();
+    for (square sq : bcr) {
+      bitboard rsk = bitboards::rook_queen(sq, occupied()) & occupied<side>();
+      bitboard pin = (ksr & rsk);
+      pinned |= pin;
+      if (pin) {
+        valid_for_pinned[pin.find()] = bitboards::line(ksq, sq);
+        // valid_r |= bitboards::line(ksq, square);
+      }
+    }
+    for (square sq : bcb) {
+      bitboard bsk = bitboards::bishop_queen(sq, occupied()) & occupied<side>();
+      bitboard pin = (ksb & bsk);
+      pinned |= pin;
+      if (pin) {
+        valid_for_pinned[pin.find()] = bitboards::line(ksq, sq);
+        // valid_b |= bitboards::line(ksq, square);
+      }
+    }
+//    std::cout << "king = " << king << std::endl;
+//    std::cout << "ksr = " << ksr << std::endl;
+//    std::cout << "ksb = " << ksb << std::endl;
+//    std::cout << "bcr = " << bcr << std::endl;
+//    std::cout << "bcb = " << bcb << std::endl;
+//    std::cout << "pinned = " << all_pinned << std::endl;
+//    std::cout << "valid_r = " << valid_r << std::endl;
+//    std::cout << "valid_b = " << valid_b << std::endl;
+  };
 
     const auto generate_king = [&]() noexcept
     {
@@ -60,11 +99,11 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     const auto generate_rook_queen = [&]() noexcept
     {
         constexpr piece rook_or_queen[] = {ROOK, QUEEN};
-        bitboard sources = rook_queen<side>(); // & ~pinned;
+        bitboard sources = rook_queen<side>();
         for (square from : sources)
         {
             piece moved = rook_or_queen[bishop_queen<side>()[from]];
-            bitboard targets = bitboards::rook_queen(from, occupied()) & ~occupied<side>() & valids; // & valid_for_pinned[from]
+            bitboard targets = bitboards::rook_queen(from, occupied()) & ~occupied<side>() & valids & valid_for_pinned[from];
             for (square to : targets)
                 moves[index++] = {moved, from, to};
         }
@@ -73,11 +112,11 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     const auto generate_bishop_queen = [&]() noexcept
     {
         constexpr piece bishop_or_queen[] = {BISHOP, QUEEN};
-        bitboard sources = bishop_queen<side>(); // & ~pinned;
+        bitboard sources = bishop_queen<side>();
         for (square from : sources)
         {
             piece moved = bishop_or_queen[rook_queen<side>()[from]];
-            bitboard targets = bitboards::bishop_queen(from, occupied()) & ~occupied<side>() & valids; // & valid_for_pinned[from]
+            bitboard targets = bitboards::bishop_queen(from, occupied()) & ~occupied<side>() & valids & valid_for_pinned[from];
             for (square to : targets)
                 moves[index++] = {moved, from, to};
         }
@@ -88,18 +127,21 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
         const auto generate_normal = [&](bitboard targets, int delta) noexcept
         {
             for (square to : targets)
+            if (valid_for_pinned[to + delta] & bitboard{to})
                 moves[index++] = {PAWN, to + delta, to};
         };
 
         const auto generate_double_push = [&](bitboard targets, int delta) noexcept
         {
             for (square to : targets)
+            if (valid_for_pinned[to + delta] & bitboard{to})
                 moves[index++] = {PAWN, to + delta, to, DOUBLE_PUSH};
         };
 
         const auto generate_promotion = [&](bitboard targets, int delta) noexcept
         {
             for (square to : targets)
+            if (valid_for_pinned[to + delta] & bitboard{to})
                 for (special promotion : {PROMOTE_QUEEN, PROMOTE_ROOK, PROMOTE_BISHOP, PROMOTE_KNIGHT})
                     moves[index++] = {PAWN, to + delta, to, promotion};
         };
@@ -108,33 +150,37 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
         bitboard targets;
 
         if (side == WHITE) {
-            targets = sources << 8 & ~occupied();
+            const bitboard push = sources << 8 & ~occupied();
+
+            targets = push & valids;
             generate_normal(targets & ~"8"_r, -8);
             generate_promotion(targets & "8"_r, -8);
 
-            targets = targets << 8 & ~occupied() & "4"_r;
+            targets = push << 8 & ~occupied() & "4"_r & valids;
             generate_double_push(targets, -16);
 
-            targets = sources << 7 & ~"h"_f & occupied<~side>();
+            targets = sources << 7 & ~"h"_f & occupied<~side>() & valids;
             generate_normal(targets & ~"8"_r, -7);
             generate_promotion(targets & "8"_r, -7);
 
-            targets = sources << 9 & ~"a"_f & occupied<~side>();
+            targets = sources << 9 & ~"a"_f & occupied<~side>() & valids;
             generate_normal(targets & ~"8"_r, -9);
             generate_promotion(targets & "8"_r, -9);
         } else {
-            targets = sources >> 8 & ~occupied();    
+            const bitboard push = sources >> 8 & ~occupied();
+
+            targets = push & valids;
             generate_normal(targets & ~"1"_r, +8);
             generate_promotion(targets & "1"_r, +8);
 
-            targets = targets >> 8 & ~occupied() & "5"_r;
+            targets = push >> 8 & ~occupied() & "5"_r & valids;
             generate_double_push(targets, +16);
 
-            targets = sources >> 7 & ~"a"_f & occupied<~side>();
+            targets = sources >> 7 & ~"a"_f & occupied<~side>() & valids;
             generate_normal(targets & ~"1"_r, +7);
             generate_promotion(targets & "1"_r, +7);
 
-            targets = sources >> 9 & ~"h"_f & occupied<~side>();
+            targets = sources >> 9 & ~"h"_f & occupied<~side>() & valids;
             generate_normal(targets & ~"1"_r, +9);
             generate_promotion(targets & "1"_r, +9);
         }
@@ -143,12 +189,31 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
             // auto ep_sq = en_passant.find();
             bitboard board = sources & bitboards::pawn<~side>(en_passant);
             for (square from : board)
+            if (valid_for_pinned[from] & en_passant)
                 moves[index++] = {PAWN, from, en_passant.find(), EN_PASSANT};
         // }
     };
 
     generate_king();
-    generate_castle();
+
+    switch (checkers.count())
+    {
+    case 0: [[likely]]
+        generate_castle();
+        break;
+    case 1:
+        {
+        square from = king<side>().find();
+        square to = checkers.find();
+        valids = bitboards::line(from, to);
+        }
+        break;
+    default:
+        return moves.subspan(0, index);
+    }
+
+    generate_pinned();
+
     generate_knight();
     generate_rook_queen();
     generate_bishop_queen();

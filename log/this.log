@@ -1,0 +1,13 @@
+mike@Gamestation:~/workspace2/perft/build$ /home/mike/workspace2/perft/build/perft
+n = 3,195,901,860
+c = 0
+t = 10.0872
+p = 316,827,980
+
+mike@Gamestation:~/workspace2/perft/build$ /home/mike/workspace2/perft/build/perft
+n = 84,998,978,956
+c = 0
+t = 275.796
+p = 308,194,990
+
+mike@Gamestation:~/workspace2/perft/build$ 

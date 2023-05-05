@@ -2,7 +2,7 @@
 #include <regex>
 
 position::position() :
-  root{
+  root_{
     "12"_r,
     "78"_r,
     "e1e8"_b,
@@ -12,7 +12,7 @@ position::position() :
     "27"_r,
     "a1h1a8h8"_b,
     {}},
-  side{WHITE}
+  side_{WHITE}
 {}
 
 static const std::regex fen_regex("(.*)/(.*)/(.*)/(.*)/(.*)/(.*)/(.*)/(.*) ([wb]) ([-KQkq]+) ([-a-h1-8]+)( \\d+)?( \\d+)?");
@@ -67,7 +67,7 @@ position::position(std::string_view fen)
       }
     }
   }
-  side = match[9].str()[0] == 'w' ? WHITE : BLACK;
+  side_ = match[9].str()[0] == 'w' ? WHITE : BLACK;
   if (match[10].compare("-")) {
     for (auto ch : match[10].str()) {
       switch (ch) {
@@ -89,7 +89,7 @@ position::position(std::string_view fen)
   if (match[11].compare("-")) {
     en_passant = bitboard{match[11].str()};
   }
-  root = {white, black, king, rook_queen, bishop_queen, knight, pawn, castle, en_passant};
+  root_ = {white, black, king, rook_queen, bishop_queen, knight, pawn, castle, en_passant};
 }
 
 template <side_t side>
@@ -119,7 +119,7 @@ std::tuple<std::size_t, std::size_t> position::perft(const node &current, int de
 }
 
 std::tuple<std::size_t, std::size_t> position::perft(int depth) const noexcept {
-  return side == WHITE ? perft<WHITE>(root, depth) : perft<BLACK>(root, depth);
+  return side_ == WHITE ? perft<WHITE>(root_, depth) : perft<BLACK>(root_, depth);
 }
 
 template <side_t side>
@@ -144,5 +144,5 @@ std::size_t position::perft_bulk(const node &current, int depth) noexcept
 }
 
 std::size_t position::perft_bulk(int depth) const noexcept {
-  return side == WHITE ? perft_bulk<WHITE>(root, depth) : perft_bulk<BLACK>(root, depth);
+  return side_ == WHITE ? perft_bulk<WHITE>(root_, depth) : perft_bulk<BLACK>(root_, depth);
 }

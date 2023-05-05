@@ -4,8 +4,8 @@
 #include "side.hpp"
 
 class position {
-  node root;
-  side_t side;
+  node root_;
+  side_t side_;
 
   template <side_t side>
   static std::tuple<std::size_t, std::size_t> perft(const node &current, int depth) noexcept;

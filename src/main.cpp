@@ -4,12 +4,12 @@
 #include <chrono>
 
 std::size_t test() {
-  return test::run("epd/perft_long.txt", 5);
+  return test::run("../epd/perft_long.txt", 5);
 }
 
 std::size_t run() {
     const position position;
-    return position.perft_divide(8);
+    return position.perft_divide(7);
 }
 
 int main()

@@ -1,0 +1,4 @@
+mike@Gamestation:~/workspace2/perft$ ./build/perft
+n = 4,160,501,650,185
+t = 1063.35
+p = 3,912,629,637

@@ -1,5 +1,6 @@
 #include "node.hpp"
 #include <utility>
+#include <iostream>
 
 static_assert(sizeof(node) == 72, "node size is 72 bytes");
 static_assert(node("e2"_b, 0, 0, 0, 0, 0, 0, 0, 0).occupied<WHITE>() == "e2"_b);
@@ -22,6 +23,7 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     bitboard attacked = this->attackers<~side>();
     bitboard checkers = this->checkers<side>();
     bitboard valids = ~0ull;
+    bitboard validse = 0ull;
 
     bitboard pinned = 0ull; // this->pinned<side>();
     // bitboard valid_r = 0ull;
@@ -58,7 +60,7 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
 //    std::cout << "ksb = " << ksb << std::endl;
 //    std::cout << "bcr = " << bcr << std::endl;
 //    std::cout << "bcb = " << bcb << std::endl;
-//    std::cout << "pinned = " << all_pinned << std::endl;
+//    std::cout << "pinned = " << pinned << std::endl;
 //    std::cout << "valid_r = " << valid_r << std::endl;
 //    std::cout << "valid_b = " << valid_b << std::endl;
   };
@@ -187,10 +189,25 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
 
         // if (!en_passant.empty()) {
             // auto ep_sq = en_passant.find();
-            bitboard board = sources & bitboards::pawn<~side>(en_passant);
+            bitboard board = sources & bitboards::pawn<~side>(bitboard{en_passant & (valids | validse)});
             for (square from : board)
-            if (valid_for_pinned[from] & en_passant)
+            if (valid_for_pinned[from] & en_passant) {
+                square ksq = king<side>().find();
+                square esq = en_passant.find();
+                square psq = side == WHITE ? esq - 8 : esq + 8;
+                // std::cout << "ksq =" << ksq << std::endl;
+                // std::cout << "esq =" << esq << std::endl;
+                // std::cout << "psq =" << psq << std::endl;
+                if (ksq.rank() == psq.rank()) {
+                    bitboard occ = occupied() & ~(bitboard{psq} | bitboard{from});
+                    // std::cout << "occ =" << occ << std::endl;
+                    bitboard foo = bitboards::rook_queen(ksq, occ) & rook_queen<~side>();
+                    // std::cout << "foo =" << foo << std::endl;
+                    if (foo)
+                        continue;
+                }
                 moves[index++] = {PAWN, from, en_passant.find(), EN_PASSANT};
+            }
         // }
     };
 
@@ -206,6 +223,13 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
         square from = king<side>().find();
         square to = checkers.find();
         valids = bitboards::line(from, to);
+        if (side == BLACK) {
+            if (checkers == en_passant << 8)
+                validse = en_passant;
+        } else {
+            if (checkers == en_passant >> 8)
+                validse = en_passant;
+        }
         }
         break;
     default:
@@ -213,6 +237,13 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     }
 
     generate_pinned();
+
+    // std::cout << "pinned = \n" << pinned << std::endl;
+    // std::cout << "valids = \n" << valids << std::endl;
+    // // std::cout << "valid-c4 = \n" << valid_for_pinned["c4"_s] << std::endl;
+    // // std::cout << "valid-d3 = \n" << valid_for_pinned["d3"_s] << std::endl;
+    // std::cout << "valid-c4 = \n" << valid_for_pinned["e4"_s] << std::endl;
+    // std::cout << "valid-d3 = \n" << valid_for_pinned["d3"_s] << std::endl;
 
     generate_knight();
     generate_rook_queen();

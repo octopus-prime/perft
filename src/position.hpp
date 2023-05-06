@@ -13,10 +13,14 @@ class position {
   template <side_t side>
   static std::size_t perft_bulk(const node &current, int depth) noexcept;
 
+  template <side_t side>
+  static std::size_t perft_divide(const node &current, int depth) noexcept;
+
 public:
   position();
   position(std::string_view fen);
 
   std::tuple<std::size_t, std::size_t> perft(int depth) const noexcept;
   std::size_t perft_bulk(int depth) const noexcept;
+  std::size_t perft_divide(int depth) const noexcept;
 };

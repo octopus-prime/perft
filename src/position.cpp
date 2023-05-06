@@ -1,5 +1,6 @@
 #include "position.hpp"
 #include <regex>
+#include <iostream>
 
 position::position() :
   root_{
@@ -145,4 +146,32 @@ std::size_t position::perft_bulk(const node &current, int depth) noexcept
 
 std::size_t position::perft_bulk(int depth) const noexcept {
   return side_ == WHITE ? perft_bulk<WHITE>(root_, depth) : perft_bulk<BLACK>(root_, depth);
+}
+
+template <side_t side>
+std::size_t position::perft_divide(const node &current, int depth) noexcept
+{
+  std::size_t count = 0;
+  std::array<move, 256> buffer;
+  auto moves = current.generate<side>(buffer);
+  for (const auto &move : moves)
+  {
+    std::size_t count_;
+    if (depth <= 1)
+      count_ = 1;
+    else
+    {
+      node succ(current);
+      succ.execute<side>(move);
+      std::array<struct move, 256> buffer2;
+      count_ = depth == 2 ? succ.generate<~side>(buffer2).size() : perft_bulk<~side>(succ, depth - 1);
+    }
+    count += count_;
+    std::cout << move << " " << count_ << std::endl;
+  }
+  return count;
+}
+
+std::size_t position::perft_divide(int depth) const noexcept {
+  return side_ == WHITE ? perft_divide<WHITE>(root_, depth) : perft_divide<BLACK>(root_, depth);
 }

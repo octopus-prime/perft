@@ -42,7 +42,7 @@ AMD Ryzen 9 5900X 12-Core Processor @ 3.70 GHz
 ## Commands
 
 ### This
-no cli - compiler and run
+no cli - compile and run
 
 ### Stockfish
 stockfish bench 0 1 8 current perft

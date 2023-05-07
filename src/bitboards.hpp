@@ -4,12 +4,14 @@
 #include "side.hpp"
 #include <array>
 #include <vector>
-#include <immintrin.h> // _pext
+#include <immintrin.h>
 
 class bitboards
 {
-  using line_lookup_t = std::array<std::array<bitboard, 64>, 64>;
+  using dualboard = __v2du;
+  using quadboard = __v4du;
   using leaper_lookup_t = std::array<bitboard, 64>;
+  using line_lookup_t = std::array<leaper_lookup_t, 64>;
   struct slider_lookup_t;
 
   static const line_lookup_t lookup_line;
@@ -20,9 +22,8 @@ class bitboards
   static const slider_lookup_t lookup_rook_queen;
   static const slider_lookup_t lookup_bishop_queen;
 
-  static constexpr bitboard expand(bitboard in, auto &&view) noexcept;
-  static constexpr bitboard expand(bitboard in, bitboard empty, auto &&view) noexcept;
   static constexpr bitboard permutation(bitboard iteration, bitboard mask) noexcept;
+  static constexpr auto expand(auto in, auto empty) noexcept;
 
 public:
   static constexpr bitboard ALL = ~0ull;
@@ -40,6 +41,8 @@ public:
 
   static bitboard bishop_queen(square square, bitboard occupied) noexcept;
   static constexpr bitboard bishop_queen(bitboard squares, bitboard occupied) noexcept;
+
+  static constexpr bitboard slider(bitboard rook_queen, bitboard bishop_queen, bitboard occupied) noexcept;
 
   template <side_t side>
   static bitboard pawn(square square) noexcept;
@@ -101,90 +104,95 @@ inline bitboard bitboards::pawn<BLACK>(square square) noexcept {
   return lookup_pawn_black[square];
 }
 
-constexpr bitboard bitboards::expand(bitboard in, auto &&view) noexcept
-{
-  return std::transform_reduce(view.begin(), view.end(), 0ull, std::bit_or{}, [in](auto &&tuple) noexcept
-                               {
-    const bitboard left = (in << std::get<0>(tuple)) & std::get<1>(tuple);
-    const bitboard right = (in >> std::get<0>(tuple)) & std::get<2>(tuple);
-    return left | right; });
-}
-
 constexpr bitboard bitboards::king(bitboard in) noexcept
 {
-  constexpr int shifts[] = {1, 8, 7, 9};
-  constexpr bitboard masks_left[] = {~"a"_f, ~""_f, ~"h"_f, ~"a"_f};
-  constexpr bitboard masks_right[] = {~"h"_f, ~""_f, ~"a"_f, ~"h"_f};
-  return bitboards::expand(in, std::views::zip(shifts, masks_left, masks_right));
+  constexpr quadboard s = {1, 8, 7, 9};
+  constexpr quadboard l = {~"a"_f, ~""_f, ~"h"_f, ~"a"_f};
+  constexpr quadboard r = {~"h"_f, ~""_f, ~"a"_f, ~"h"_f};
+  quadboard b = {in, in, in, in};
+  quadboard t = ((b << s) & l) | ((b >> s) & r);
+  return t[0] | t[1] | t[2] | t[3];
 }
 
 constexpr bitboard bitboards::knight(bitboard in) noexcept
 {
-  constexpr int shifts[] = {10, 17, 15, 6};
-  constexpr bitboard masks_left[] = {~"ab"_f, ~"a"_f, ~"h"_f, ~"gh"_f};
-  constexpr bitboard masks_right[] = {~"gh"_f, ~"h"_f, ~"a"_f, ~"ab"_f};
-  return expand(in, std::views::zip(shifts, masks_left, masks_right));
+  constexpr quadboard s = {10, 17, 15, 6};
+  constexpr quadboard l = {~"ab"_f, ~"a"_f, ~"h"_f, ~"gh"_f};
+  constexpr quadboard r = {~"gh"_f, ~"h"_f, ~"a"_f, ~"ab"_f};
+  quadboard b = {in, in, in, in};
+  quadboard t = ((b << s) & l) | ((b >> s) & r);
+  return t[0] | t[1] | t[2] | t[3];
 }
 
-constexpr bitboard bitboards::expand(bitboard in, bitboard empty, auto &&view) noexcept
-{
-  return std::transform_reduce(view.begin(), view.end(), 0ull, std::bit_or{}, [in, empty](auto &&tuple) noexcept
-                               {
-    bitboard left(in);
-    bitboard right(in);
-    bitboard board(empty & std::get<1>(tuple));
+constexpr auto bitboards::expand(auto in, auto empty) noexcept {
+	constexpr quadboard shift = { 1, 8, 7, 9 };
+	constexpr quadboard shift2 = { 2, 16, 14, 18 };
+	constexpr quadboard shift4 = { 4, 32, 28, 36 };
+	constexpr quadboard not_left = { ~"a"_f, ~""_f, ~"h"_f, ~"a"_f };
+	constexpr quadboard not_right = { ~"h"_f, ~""_f, ~"a"_f, ~"h"_f };
+	quadboard left(in);
+	quadboard right(in);
+	quadboard board(empty & not_left);
 
-    left |= board & (left << std::get<0>(tuple));
-    board &= (board << std::get<0>(tuple));
-    left |= board & (left << (std::get<0>(tuple) * 2));
-    board &= (board << (std::get<0>(tuple) * 2));
-    left |= board & (left << (std::get<0>(tuple) * 4));
-    left = (left << std::get<0>(tuple)) & std::get<1>(tuple);
+	left |= board & (left << shift);
+	board &= (board << shift);
+	left |= board & (left << shift2);
+	board &= (board << shift2);
+	left |= board & (left << shift4);
+	left = (left << shift) & not_left;
 
-    board = empty & std::get<2>(tuple);
+	board = empty & not_right;
 
-    right |= board & (right >> std::get<0>(tuple));
-    board &= (board >> std::get<0>(tuple));
-    right |= board & (right >> (std::get<0>(tuple) * 2));
-    board &= (board >> (std::get<0>(tuple) * 2));
-    right |= board & (right >> (std::get<0>(tuple) * 4));
-    right = (right >> std::get<0>(tuple)) & std::get<2>(tuple);
+	right |= board & (right >> shift);
+	board &= (board >> shift);
+	right |= board & (right >> shift2);
+	board &= (board >> shift2);
+	right |= board & (right >> shift4);
+	right = (right >> shift) & not_right;
 
-    return left | right; });
+	return left | right;
 }
 
 constexpr bitboard bitboards::rook_queen(bitboard in, bitboard occupied) noexcept
 {
-  constexpr int shifts[] = {1, 8};
-  constexpr bitboard masks_left[] = {~"a"_f, ~""_f};
-  constexpr bitboard masks_right[] = {~"h"_f, ~""_f};
-  return expand(in, ~occupied, std::views::zip(shifts, masks_left, masks_right));
+  quadboard b = {in, in, 0, 0};
+  quadboard o = {occupied, occupied, 0, 0};
+  quadboard t = expand(b, ~o);
+  return t[0] | t[1];
 }
 
 constexpr bitboard bitboards::bishop_queen(bitboard in, bitboard occupied) noexcept
 {
-  constexpr int shifts[] = {7, 9};
-  constexpr bitboard masks_left[] = {~"h"_f, ~"a"_f};
-  constexpr bitboard masks_right[] = {~"a"_f, ~"h"_f};
-  return expand(in, ~occupied, std::views::zip(shifts, masks_left, masks_right));
+  quadboard b = {0, 0, in, in};
+  quadboard o = {0, 0, occupied, occupied};
+  quadboard t = expand(b, ~o);
+  return t[2] | t[3];
+}
+
+constexpr bitboard bitboards::slider(bitboard rook_queen, bitboard bishop_queen, bitboard occupied) noexcept
+{
+  quadboard b = {rook_queen, rook_queen, bishop_queen, bishop_queen};
+  quadboard o = {occupied, occupied, occupied, occupied};
+  quadboard t = expand(b, ~o);
+  return t[0] | t[1] | t[2] | t[3];
 }
 
 template <>
 constexpr bitboard bitboards::pawn<WHITE>(bitboard in) noexcept
 {
-  constexpr int shifts[] = {7, 9};
-  constexpr uint64_t masks[] = {~"h"_f, ~"a"_f};
-  const auto view = std::views::zip(shifts, masks);
-  return std::transform_reduce(view.begin(), view.end(), 0ull, std::bit_or{}, [in](auto &&tuple) noexcept
-                               { return (in << std::get<0>(tuple)) & std::get<1>(tuple); });
+  constexpr dualboard s = {7, 9};
+  constexpr dualboard m = {~"h"_f, ~"a"_f};
+  dualboard b = {in, in};
+  dualboard t = (b << s) & m;
+  return t[0] | t[1];
 }
 
 template <>
 constexpr bitboard bitboards::pawn<BLACK>(bitboard in) noexcept
 {
-  constexpr int shifts[] = {7, 9};
-  constexpr uint64_t masks[] = {~"a"_f, ~"h"_f};
-  const auto view = std::views::zip(shifts, masks);
-  return std::transform_reduce(view.begin(), view.end(), 0ull, std::bit_or{}, [in](auto &&tuple) noexcept
-                               { return (in >> std::get<0>(tuple)) & std::get<1>(tuple); });
+  constexpr dualboard s = {7, 9};
+  constexpr dualboard m = {~"a"_f, ~"h"_f};
+  dualboard b = {in, in};
+  dualboard t = (b >> s) & m;
+  return t[0] | t[1];
 }

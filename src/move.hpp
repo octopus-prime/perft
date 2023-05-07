@@ -2,7 +2,8 @@
 
 #include "square.hpp"
 
-struct move {
+class move {
+public:
     enum type_t : std::uint8_t {
         KING,
         CASTLE_SHORT,
@@ -20,9 +21,17 @@ struct move {
         EN_PASSANT
     };
 
-    type_t type = KING;
-    square from = 0;
-    square to = 0;
+private:
+    type_t type_;
+    square from_;
+    square to_;
+
+public:
+    constexpr move(type_t type = KING, square from = 0, square to = 0) noexcept
+        : type_{type}, from_{from}, to_{to} {}
+    constexpr type_t type() const noexcept { return type_; }
+    constexpr square from() const noexcept { return from_; }
+    constexpr square to() const noexcept { return to_; }
 };
 
 std::ostream& operator<<(std::ostream& stream, const move& move);

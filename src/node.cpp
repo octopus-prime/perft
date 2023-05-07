@@ -261,8 +261,8 @@ void node::execute(const move &move) noexcept
         }
     };
 
-    const bitboard from{move.from};
-    const bitboard to{move.to};
+    const bitboard from{move.from()};
+    const bitboard to{move.to()};
     const bitboard squares{from | to};
     en_passant = 0ull;
 
@@ -482,7 +482,7 @@ void node::execute(const move &move) noexcept
         }
     };
 
-    switch (move.type)
+    switch (move.type())
     {
     case move::KING:
         execute_king();

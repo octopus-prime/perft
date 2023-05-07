@@ -1,4 +1,9 @@
-mike@Gamestation:~/workspace2/perft$ ./build/perft
+mike@Gamestation:~/workspace2/perft/build$ ./perft p 7
+n = 3,195,901,860
+t = 6.89233
+p = 463,689,470
+
+mike@Gamestation:~/workspace2/perft/build$ ./perft d 7
 Nb1a3 120142144
 Nb1c3 148527161
 Ng1f3 147678554
@@ -20,5 +25,7 @@ Pf2f4 119614841
 Pg2g4 130293018
 Ph2h4 138495290
 n = 3,195,901,860
-t = 9.36147
-p = 341,388,830
+t = 6.90406
+p = 462,901,924
+
+mike@Gamestation:~/workspace2/perft/build$

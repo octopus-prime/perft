@@ -1,4 +1,6 @@
-mike@Gamestation:~/workspace2/perft$ ./build/perft
-n = 4,160,378,507,849
-t = 955.195
-p = 4,355,529,660
+mike@Gamestation:~/workspace2/perft/build$ ./perft t 6
+n = 4,156,802,421,433
+t = 639.391
+p = 6,501,193,715
+
+mike@Gamestation:~/workspace2/perft/build$

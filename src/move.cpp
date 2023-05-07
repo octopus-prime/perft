@@ -5,7 +5,7 @@ static_assert(move{move::PAWN, "e2"_s, "e4"_s}.from == "e2"_s);
 static_assert(move{move::PAWN, "e2"_s, "e4"_s}.to == "e4"_s);
 static_assert(move{move::PAWN, "e2"_s, "e4"_s}.type == move::PAWN);
 
-std::ostream& operator<<(std::ostream& stream, move move) {
+std::ostream& operator<<(std::ostream& stream, const move& move) {
     switch (move.type)
     {
     case move::KING:

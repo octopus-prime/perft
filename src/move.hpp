@@ -25,4 +25,4 @@ struct move {
     square to = 0;
 };
 
-std::ostream& operator<<(std::ostream& stream, move move);
+std::ostream& operator<<(std::ostream& stream, const move& move);

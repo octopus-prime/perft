@@ -126,8 +126,6 @@ constexpr bitboard bitboards::knight(bitboard in) noexcept
 
 constexpr auto bitboards::expand(auto in, auto empty) noexcept {
 	constexpr quadboard shift = { 1, 8, 7, 9 };
-	constexpr quadboard shift2 = { 2, 16, 14, 18 };
-	constexpr quadboard shift4 = { 4, 32, 28, 36 };
 	constexpr quadboard not_left = { ~"a"_f, ~""_f, ~"h"_f, ~"a"_f };
 	constexpr quadboard not_right = { ~"h"_f, ~""_f, ~"a"_f, ~"h"_f };
 	quadboard left(in);
@@ -136,18 +134,18 @@ constexpr auto bitboards::expand(auto in, auto empty) noexcept {
 
 	left |= board & (left << shift);
 	board &= (board << shift);
-	left |= board & (left << shift2);
-	board &= (board << shift2);
-	left |= board & (left << shift4);
+	left |= board & (left << (shift * 2));
+	board &= (board << (shift * 2));
+	left |= board & (left << (shift * 4));
 	left = (left << shift) & not_left;
 
 	board = empty & not_right;
 
 	right |= board & (right >> shift);
 	board &= (board >> shift);
-	right |= board & (right >> shift2);
-	board &= (board >> shift2);
-	right |= board & (right >> shift4);
+	right |= board & (right >> (shift * 2));
+	board &= (board >> (shift * 2));
+	right |= board & (right >> (shift * 4));
 	right = (right >> shift) & not_right;
 
 	return left | right;

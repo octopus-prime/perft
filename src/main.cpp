@@ -9,7 +9,7 @@ std::size_t test() {
 
 std::size_t run() {
     const position position;
-    return position.perft_divide(7);
+    return position.divide(7);
 }
 
 int main()

@@ -21,7 +21,7 @@ test::test(std::string_view row, std::size_t index) {
 }
 
 std::expected<size_t, std::string> test::run(int depth) const noexcept {
-  size_t count = position_.perft_bulk(depth);
+  size_t count = position_.perft(depth);
   if (count != expected_[depth - 1])
     return std::unexpected(std::format("kaputtnik: l={}, d={}, n={}, e={}", index_, depth, count, expected_[depth - 1]));
   return count;

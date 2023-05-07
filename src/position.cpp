@@ -94,37 +94,7 @@ position::position(std::string_view fen)
 }
 
 template <side_t side>
-std::tuple<std::size_t, std::size_t> position::perft(const node &current, int depth) noexcept
-{
-  std::size_t count = 0;
-  std::size_t checks = 0;
-  std::array<move, 256> buffer;
-  auto moves = current.generate<side>(buffer);
-  for (const auto &move : moves)
-  {
-    node succ(current);
-    succ.execute<side>(move);
-    if (!succ.checkers<side>())
-      if (depth > 1)
-      {
-        auto [count_, checks_] = perft<~side>(succ, depth - 1);
-        count += count_;
-        checks += checks_;
-      }
-      else
-        ++count;
-    else
-      ++checks;
-  }
-  return {count, checks};
-}
-
-std::tuple<std::size_t, std::size_t> position::perft(int depth) const noexcept {
-  return side_ == WHITE ? perft<WHITE>(root_, depth) : perft<BLACK>(root_, depth);
-}
-
-template <side_t side>
-std::size_t position::perft_bulk(const node &current, int depth) noexcept
+std::size_t position::perft(const node &current, int depth) noexcept
 {
   std::size_t count = 0;
   std::array<move, 256> buffer;
@@ -138,18 +108,18 @@ std::size_t position::perft_bulk(const node &current, int depth) noexcept
       node succ(current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
-      count += depth == 2 ? succ.generate<~side>(buffer2).size() : perft_bulk<~side>(succ, depth - 1);
+      count += depth == 2 ? succ.generate<~side>(buffer2).size() : perft<~side>(succ, depth - 1);
     }
   }
   return count;
 }
 
-std::size_t position::perft_bulk(int depth) const noexcept {
-  return side_ == WHITE ? perft_bulk<WHITE>(root_, depth) : perft_bulk<BLACK>(root_, depth);
+std::size_t position::perft(int depth) const noexcept {
+  return side_ == WHITE ? perft<WHITE>(root_, depth) : perft<BLACK>(root_, depth);
 }
 
 template <side_t side>
-std::size_t position::perft_divide(const node &current, int depth) noexcept
+std::size_t position::divide(const node &current, int depth) noexcept
 {
   std::size_t count = 0;
   std::array<move, 256> buffer;
@@ -164,7 +134,7 @@ std::size_t position::perft_divide(const node &current, int depth) noexcept
       node succ(current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
-      count_ = depth == 2 ? succ.generate<~side>(buffer2).size() : perft_bulk<~side>(succ, depth - 1);
+      count_ = depth == 2 ? succ.generate<~side>(buffer2).size() : perft<~side>(succ, depth - 1);
     }
     count += count_;
     std::cout << move << " " << count_ << std::endl;
@@ -172,6 +142,6 @@ std::size_t position::perft_divide(const node &current, int depth) noexcept
   return count;
 }
 
-std::size_t position::perft_divide(int depth) const noexcept {
-  return side_ == WHITE ? perft_divide<WHITE>(root_, depth) : perft_divide<BLACK>(root_, depth);
+std::size_t position::divide(int depth) const noexcept {
+  return side_ == WHITE ? divide<WHITE>(root_, depth) : divide<BLACK>(root_, depth);
 }

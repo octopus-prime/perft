@@ -137,7 +137,7 @@ std::size_t position::divide(const node &current, int depth) noexcept
       count_ = depth == 2 ? succ.generate<~side>(buffer2).size() : perft<~side>(succ, depth - 1);
     }
     count += count_;
-    std::cout << move << " " << count_ << std::endl;
+    std::cout << move << '\t' << count_ << std::endl;
   }
   return count;
 }

@@ -75,12 +75,10 @@ public:
 
 template <side_t side>
 constexpr bitboard node::attackers() const noexcept {
-  bitboard foo = occupied() & ~king<~side>();
   bitboard out = 0ull;
   out |= bitboards::king(king<side>());
   out |= bitboards::knight(knight<side>());
-  out |= bitboards::rook_queen(rook_queen<side>(), foo);
-  out |= bitboards::bishop_queen(bishop_queen<side>(), foo);
+  out |= bitboards::slider(rook_queen<side>(), bishop_queen<side>(), occupied() & ~king<~side>());
   out |= bitboards::pawn<side>(pawn<side>());
   return out;
 }

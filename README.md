@@ -86,7 +86,7 @@ AMD Ryzen 9 5900X 12-Core Processor @ 3.70 GHz
 
 ### Compiler
 
-GCC 13 with `-O3 -march=native -flto`
+GCC 13
 
 ## Commands
 

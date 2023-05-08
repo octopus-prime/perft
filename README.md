@@ -54,21 +54,21 @@ p = 555,787,292
 
 * single core
 
-|             | This          | Stockfish     | QPerft        |
-|-------------|---------------|---------------|---------------|
-| Nodes       | 3,195,901,860 | 3,195,901,860 | 3,195,901,860 |
-| Time (s)    | 6.89233       | 10.485        | 8.367         |
-| Perf (N/s)  | 463,689,470   | 304,807,044   | 381,965,084   |
+|             | This          | Stockfish     | QPerft        | BBPerft       |
+|-------------|---------------|---------------|---------------|---------------|
+| Nodes       | 3,195,901,860 | 3,195,901,860 | 3,195,901,860 | 3,195,901,860 |
+| Time (s)    | 6.89233       | 10.485        | 8.367         | 8.479         |
+| Perf (N/s)  | 463,689,470   | 304,807,044   | 381,965,084   | 376,919,667   |
 
 ### perft 8
 
 * single core
 
-|             | This           | Stockfish      | QPerft         |
-|-------------|----------------|----------------|----------------|
-| Nodes       | 84,998,978,956 | 84,998,978,956 | 84,998,978,956 |
-| Time (s)    | 183.013        | 284.789        | 227.948        |
-| Perf (N/s)  | 464,443,497    | 298,462,998    | 372,887,583    |
+|             | This           | Stockfish      | QPerft         | BBPerft        |
+|-------------|----------------|----------------|----------------|----------------|
+| Nodes       | 84,998,978,956 | 84,998,978,956 | 84,998,978,956 | 84,998,978,956 |
+| Time (s)    | 183.013        | 284.789        | 227.948        | 230.646        |
+| Perf (N/s)  | 464,443,497    | 298,462,998    | 372,887,583    | 368,525,701    |
 
 ### test suite
 
@@ -97,10 +97,18 @@ GCC 13
 
 ### Stockfish
 
+* Link https://github.com/official-stockfish/Stockfish
 * Build `make -j profile-build ARCH=x86-64-avx2`
 * Run `stockfish bench 0 1 8 current perft`
 
 ### QPerft
 
+* Link https://home.hccnet.nl/h.g.muller/dwnldpage.html
 * Build `gcc -O3 -march=native -flto perft.c`
 * Run `perft 8`
+
+### BBPerft
+
+* Link https://github.com/Mk-Chan/BBPerft
+* Build `make all`
+* Run `perft -s -d 8 -f "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"`

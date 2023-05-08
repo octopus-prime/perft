@@ -1,5 +1,5 @@
-mike@Gamestation:~$ stockfish bench 0 1 8 current perft
-Stockfish 15.1 by the Stockfish developers (see AUTHORS file)
+mike@Gamestation:~/workspace2/Stockfish/src$ ./stockfish bench 0 1 8 current perft
+Stockfish dev-20230507-65e21505 by the Stockfish developers (see AUTHORS file)
 
 Position: 1/1 (rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1)
 a2a3: 2863411653
@@ -27,7 +27,6 @@ Nodes searched: 84998978956
 
 
 ===========================
-Total time (ms) : 323134
+Total time (ms) : 284789
 Nodes searched  : 84998978956
-Nodes/second    : 263045606
-mike@Gamestation:~$
+Nodes/second    : 298462998

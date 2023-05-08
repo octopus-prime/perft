@@ -1,4 +1,4 @@
-PS C:\Users\mikeg\Downloads> .\perft.exe 8
+mike@Gamestation:~/workspace2/perft/build$ ./a.out 7
  - - - - - - - - - - - -
  - - - - - - - - - - - -
  - - r n b q k b n r - -
@@ -19,8 +19,6 @@ perft( 1)=           20 ( 0.000 sec)
 perft( 2)=          400 ( 0.000 sec)
 perft( 3)=         8902 ( 0.000 sec)
 perft( 4)=       197281 ( 0.001 sec)
-perft( 5)=      4865609 ( 0.019 sec)
-perft( 6)=    119060324 ( 0.463 sec)
-perft( 7)=   3195901860 (12.457 sec)
-perft( 8)=  84998978956 (333.844 sec)
-PS C:\Users\mikeg\Downloads>
+perft( 5)=      4865609 ( 0.012 sec)
+perft( 6)=    119060324 ( 0.308 sec)
+perft( 7)=   3195901860 ( 8.367 sec)

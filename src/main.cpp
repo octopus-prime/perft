@@ -21,14 +21,19 @@ int main(int argc, char *argv[])
   try
   {
     std::locale::global(std::locale("en_US.UTF-8"));
+
+    // table table(15485863);
+   table table(104395303);
+// table table(512927377);
+
     auto time0 = std::chrono::high_resolution_clock::now();
     std::size_t count;
     switch (command) {
       case 'd':
-        count = position{fen}.divide(depth);
+        count = position{fen}.divide(table, depth);
         break;
       case 'p':
-        count = position{fen}.perft(depth);
+        count = position{fen}.perft(table, depth);
         break;
       case 't':
         count = test::run("../epd/perft_long.txt", depth);

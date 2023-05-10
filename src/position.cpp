@@ -1,4 +1,5 @@
 #include "position.hpp"
+#include "table.hpp"
 #include <regex>
 #include <iostream>
 
@@ -12,6 +13,7 @@ position::position() :
     "b1g1b8g8"_b,
     "27"_r,
     "a1h1a8h8"_b,
+    0,
     {}},
   side_{WHITE}
 {}
@@ -32,6 +34,7 @@ position::position(std::string_view fen)
   bitboard pawn;
   bitboard castle;
   bitboard en_passant;
+  hash_t hash;
   for (int i = 0; i < 8; ++i) {
     int j = 0;
     for (auto ch : match[8 - i].str()) {
@@ -39,31 +42,70 @@ position::position(std::string_view fen)
         j += ch - '0';
       else {
         uint64_t b = 1ull << (8 * i + j);
-        switch (std::tolower(ch)) {
-        case 'r':
-          rook_queen |= b;
+        switch (ch) {
+        case 'K':
+          king |= b;
+          white |= b;
+          hash ^= hashes::king<WHITE>(b);
           break;
-        case 'b':
+        case 'k':
+          king |= b;
+          black |= b;
+          hash ^= hashes::king<BLACK>(b);
+          break;
+        case 'Q':
+          rook_queen |= b;
           bishop_queen |= b;
+          white |= b;
+          hash ^= hashes::queen<WHITE>(b);
           break;
         case 'q':
           rook_queen |= b;
           bishop_queen |= b;
+          black |= b;
+          hash ^= hashes::queen<BLACK>(b);
           break;
-        case 'k':
-          king |= b;
+        case 'R':
+          rook_queen |= b;
+          white |= b;
+          hash ^= hashes::rook<WHITE>(b);
           break;
-        case 'p':
-          pawn |= b;
+        case 'r':
+          rook_queen |= b;
+          black |= b;
+          hash ^= hashes::rook<BLACK>(b);
+          break;
+        case 'B':
+          bishop_queen |= b;
+          white |= b;
+          hash ^= hashes::bishop<WHITE>(b);
+          break;
+        case 'b':
+          bishop_queen |= b;
+          black |= b;
+          hash ^= hashes::bishop<BLACK>(b);
+          break;
+        case 'N':
+          knight |= b;
+          white |= b;
+          hash ^= hashes::knight<WHITE>(b);
           break;
         case 'n':
           knight |= b;
+          black |= b;
+          hash ^= hashes::knight<BLACK>(b);
+          break;
+        case 'P':
+          pawn |= b;
+          white |= b;
+          hash ^= hashes::pawn<WHITE>(b);
+          break;
+        case 'p':
+          pawn |= b;
+          black |= b;
+          hash ^= hashes::pawn<BLACK>(b);
           break;
         }
-        if (std::isupper(ch))
-          white |= b;
-        else
-          black |= b;
         ++j;
       }
     }
@@ -90,7 +132,7 @@ position::position(std::string_view fen)
   if (match[11].compare("-")) {
     en_passant = bitboard{match[11].str()};
   }
-  root_ = {white, black, king, rook_queen, bishop_queen, knight, pawn, castle, en_passant};
+  root_ = {white, black, king, rook_queen, bishop_queen, knight, pawn, castle, en_passant, hash};
 }
 
 template <side_t side>
@@ -119,6 +161,36 @@ std::size_t position::perft(int depth) const noexcept {
 }
 
 template <side_t side>
+std::size_t position::perft(const node &current, table& table, int depth) noexcept
+{
+  auto hit = table.get(current.hash<side>(), depth);
+  if (hit.has_value()) {
+    return hit.value();
+  }
+  std::size_t count = 0;
+  std::array<move, 256> buffer;
+  auto moves = current.generate<side>(buffer);
+  for (const auto &move : moves)
+  {
+    if (depth <= 1)
+      count += 1;
+    else
+    {
+      node succ(current);
+      succ.execute<side>(move);
+      std::array<struct move, 256> buffer2;
+      count += depth == 2 ? succ.generate<~side>(buffer2).size() : perft<~side>(succ, table, depth - 1);
+    }
+  }
+  table.put(current.hash<side>(), depth, count);
+  return count;
+}
+
+std::size_t position::perft(table& table, int depth) const noexcept {
+  return side_ == WHITE ? perft<WHITE>(root_, table, depth) : perft<BLACK>(root_, table, depth);
+}
+
+template <side_t side>
 std::size_t position::divide(const node &current, int depth) noexcept
 {
   std::size_t count = 0;
@@ -144,4 +216,32 @@ std::size_t position::divide(const node &current, int depth) noexcept
 
 std::size_t position::divide(int depth) const noexcept {
   return side_ == WHITE ? divide<WHITE>(root_, depth) : divide<BLACK>(root_, depth);
+}
+
+template <side_t side>
+std::size_t position::divide(const node &current, table& table, int depth) noexcept
+{
+  std::size_t count = 0;
+  std::array<move, 256> buffer;
+  auto moves = current.generate<side>(buffer);
+  for (const auto &move : moves)
+  {
+    std::size_t count_;
+    if (depth <= 1)
+      count_ = 1;
+    else
+    {
+      node succ(current);
+      succ.execute<side>(move);
+      std::array<struct move, 256> buffer2;
+      count_ = depth == 2 ? succ.generate<~side>(buffer2).size() : perft<~side>(succ, table, depth - 1);
+    }
+    count += count_;
+    std::cout << move << '\t' << count_ << std::endl;
+  }
+  return count;
+}
+
+std::size_t position::divide(table& table, int depth) const noexcept {
+  return side_ == WHITE ? divide<WHITE>(root_, table, depth) : divide<BLACK>(root_, table, depth);
 }

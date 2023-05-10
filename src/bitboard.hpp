@@ -66,9 +66,10 @@ public:
     value_ &= ~bitboard{square};
   }
 
-  constexpr void reset(bitboard squares) noexcept
+  constexpr bitboard& reset(bitboard squares) noexcept
   {
     value_ &= ~squares;
+    return *this;
   }
 
   constexpr void flip(square square) noexcept

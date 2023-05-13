@@ -18,31 +18,31 @@ class hashes {
 public:
     template <side_t side>
     inline static hash_t king(square square) noexcept {
-        return side == WHITE ? king_[WHITE][square] : king_[BLACK][square];
+        return king_[side][square];
     }
 
     template <side_t side>
     inline static hash_t queen(square square) noexcept {
-        return side == WHITE ? queen_[WHITE][square] : queen_[BLACK][square];
+        return queen_[side][square];
     }
 
     template <side_t side>
     inline static hash_t rook(square square) noexcept {
-        return side == WHITE ? rook_[WHITE][square] : rook_[BLACK][square];
+        return rook_[side][square];
     }
 
     template <side_t side>
     inline static hash_t bishop(square square) noexcept {
-        return side == WHITE ? bishop_[WHITE][square] : bishop_[BLACK][square];
+        return bishop_[side][square];
     }
 
     template <side_t side>
     inline static hash_t knight(square square) noexcept {
-        return side == WHITE ? knight_[WHITE][square] : knight_[BLACK][square];
+        return knight_[side][square];
     }
 
     template <side_t side>
     inline static hash_t pawn(square square) noexcept {
-        return side == WHITE ? pawn_[WHITE][square] : pawn_[BLACK][square];
+        return pawn_[side][square];
     }
 };

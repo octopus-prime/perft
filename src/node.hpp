@@ -2,6 +2,8 @@
 
 #include "bitboard.hpp"
 #include "bitboards.hpp"
+#include "hash.hpp"
+#include "hashes.hpp"
 #include "move.hpp"
 #include "side.hpp"
 
@@ -16,12 +18,13 @@ class node
     bitboard pawn_;
     bitboard castle;
     bitboard en_passant;
+    hash_t hash_;
 
 public:
     constexpr node() noexcept = default;
 
-    constexpr node(bitboard white, bitboard black, bitboard king, bitboard rook_queen, bitboard bishop_queen, bitboard knight, bitboard pawn, bitboard castle, bitboard en_passant) noexcept
-        : white(white), black(black), king_(king), rook_queen_(rook_queen), bishop_queen_(bishop_queen), knight_(knight), pawn_(pawn), castle(castle), en_passant(en_passant) {}
+    constexpr node(bitboard white, bitboard black, bitboard king, bitboard rook_queen, bitboard bishop_queen, bitboard knight, bitboard pawn, bitboard castle, bitboard en_passant, hash_t hash) noexcept
+        : white(white), black(black), king_(king), rook_queen_(rook_queen), bishop_queen_(bishop_queen), knight_(knight), pawn_(pawn), castle(castle), en_passant(en_passant), hash_(hash) {}
 
     constexpr bitboard occupied() const noexcept {
         return white | black;
@@ -55,6 +58,11 @@ public:
     template <side_t side>
     constexpr bitboard pawn() const noexcept {
         return pawn_ & occupied<side>();
+    }
+
+    template <side_t side>
+    constexpr hash_t hash() const noexcept {
+        return side == WHITE ? hash_ ^ castle ^ en_passant :  ~(hash_ ^ castle ^ en_passant);
     }
 
     template <side_t side>

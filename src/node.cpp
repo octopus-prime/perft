@@ -1,18 +1,18 @@
 #include "node.hpp"
 #include <utility>
 
-static_assert(sizeof(node) == 72, "node size is 72 bytes");
-static_assert(node("e2"_b, 0, 0, 0, 0, 0, 0, 0, 0).occupied<WHITE>() == "e2"_b);
-static_assert(node(0, "e4"_b, 0, 0, 0, 0, 0, 0, 0).occupied<BLACK>() == "e4"_b);
-static_assert(node("e2"_b, "e4"_b, 0, 0, 0, 0, 0, 0, 0).occupied() == "e2e4"_b);
-static_assert(node("e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0, 0).king<WHITE>() == "e2"_b);
-static_assert(node("e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0, 0).attackers<WHITE>() == bitboards::king("e2"_b));
-static_assert(node("e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0, 0).rook_queen<WHITE>() == "e2"_b);
-static_assert(node(0, "e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0).attackers<BLACK>() == bitboards::rook_queen("e2"_b, 0ull));
-static_assert(node(0, "e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0).bishop_queen<BLACK>() == "e2"_b);
-static_assert(node(0, "e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0).attackers<BLACK>() == bitboards::bishop_queen("e2"_b, 0ull));
-static_assert(node(0, "e2"_b, 0, 0, 0, "e2"_b, 0, 0, 0).knight<BLACK>() == "e2"_b);
-static_assert(node(0, "e2"_b, 0, 0, 0, "e2"_b, 0, 0, 0).attackers<BLACK>() == bitboards::knight("e2"_b));
+static_assert(sizeof(node) == 80);
+static_assert(node("e2"_b, 0, 0, 0, 0, 0, 0, 0, 0, 0).occupied<WHITE>() == "e2"_b);
+static_assert(node(0, "e4"_b, 0, 0, 0, 0, 0, 0, 0, 0).occupied<BLACK>() == "e4"_b);
+static_assert(node("e2"_b, "e4"_b, 0, 0, 0, 0, 0, 0, 0, 0).occupied() == "e2e4"_b);
+static_assert(node("e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0, 0, 0).king<WHITE>() == "e2"_b);
+static_assert(node("e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0, 0, 0).attackers<WHITE>() == bitboards::king("e2"_b));
+static_assert(node("e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0, 0, 0).rook_queen<WHITE>() == "e2"_b);
+static_assert(node(0, "e2"_b, 0, "e2"_b, 0, 0, 0, 0, 0, 0).attackers<BLACK>() == bitboards::rook_queen("e2"_b, 0ull));
+static_assert(node(0, "e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0, 0).bishop_queen<BLACK>() == "e2"_b);
+static_assert(node(0, "e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0, 0).attackers<BLACK>() == bitboards::bishop_queen("e2"_b, 0ull));
+static_assert(node(0, "e2"_b, 0, 0, 0, "e2"_b, 0, 0, 0, 0).knight<BLACK>() == "e2"_b);
+static_assert(node(0, "e2"_b, 0, 0, 0, "e2"_b, 0, 0, 0, 0).attackers<BLACK>() == bitboards::knight("e2"_b));
 
 template <side_t side>
 std::span<move> node::generate(std::span<move, 256> moves) const noexcept
@@ -243,12 +243,27 @@ template std::span<move> node::generate<BLACK>(std::span<move, 256> moves) const
 template <side_t side>
 void node::execute(const move &move) noexcept
 {
-    const auto remove = [this](bitboard to) noexcept
+    const auto remove = [&](bitboard to) noexcept
     {
-        rook_queen_.reset(to);
-        bishop_queen_.reset(to);
-        knight_.reset(to);
-        pawn_.reset(to);
+        bool r = rook_queen_ != rook_queen_.reset(to);
+        bool b = bishop_queen_ != bishop_queen_.reset(to);
+        switch(r + b * 2) {
+        case 1:
+            hash_ ^= hashes::rook<~side>(to.find());
+            break;
+        case 2:
+            hash_ ^= hashes::bishop<~side>(to.find());
+            break;
+        case 3:
+            hash_ ^= hashes::queen<~side>(to.find());
+            break;
+        default: 
+            break;
+        }
+        if (knight_ != knight_.reset(to))
+            hash_ ^= hashes::knight<~side>(to.find());
+        if (pawn_ != pawn_.reset(to))
+            hash_ ^= hashes::pawn<~side>(to.find());
         if (side == WHITE)
         {
             black.reset(to);
@@ -270,6 +285,7 @@ void node::execute(const move &move) noexcept
     {
         remove(to);
         king_.flip(squares);
+        hash_ ^= hashes::king<side>(move.from()) ^ hashes::king<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -290,6 +306,7 @@ void node::execute(const move &move) noexcept
             rook_queen_.flip("h1f1"_b);
             white.flip("e1f1g1h1"_b);
             castle.reset("a1h1"_b);
+            hash_ ^= hashes::king<side>("e1"_s) ^ hashes::king<side>("g1"_s) ^ hashes::rook<side>("h1"_s) ^ hashes::rook<side>("f1"_s);
         }
         else
         {
@@ -297,6 +314,7 @@ void node::execute(const move &move) noexcept
             rook_queen_.flip("h8f8"_b);
             black.flip("e8f8g8h8"_b);
             castle.reset("a8h8"_b);
+            hash_ ^= hashes::king<side>("e8"_s) ^ hashes::king<side>("g8"_s) ^ hashes::rook<side>("h8"_s) ^ hashes::rook<side>("f8"_s);
         }
     };
 
@@ -308,6 +326,7 @@ void node::execute(const move &move) noexcept
             rook_queen_.flip("a1d1"_b);
             white.flip("a1c1d1e1"_b);
             castle.reset("a1h1"_b);
+            hash_ ^= hashes::king<side>("e1"_s) ^ hashes::king<side>("c1"_s) ^ hashes::rook<side>("a1"_s) ^ hashes::rook<side>("d1"_s);
         }
         else
         {
@@ -315,6 +334,7 @@ void node::execute(const move &move) noexcept
             rook_queen_.flip("a8d8"_b);
             black.flip("a8c8d8e8"_b);
             castle.reset("a8h8"_b);
+            hash_ ^= hashes::king<side>("e8"_s) ^ hashes::king<side>("c8"_s) ^ hashes::rook<side>("a8"_s) ^ hashes::rook<side>("d8"_s);
         }
     };
 
@@ -322,6 +342,7 @@ void node::execute(const move &move) noexcept
     {
         remove(to);
         knight_.flip(squares);
+        hash_ ^= hashes::knight<side>(move.from()) ^ hashes::knight<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -337,6 +358,7 @@ void node::execute(const move &move) noexcept
         remove(to);
         rook_queen_.flip(squares);
         bishop_queen_.flip(squares);
+        hash_ ^= hashes::queen<side>(move.from()) ^ hashes::queen<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -351,6 +373,7 @@ void node::execute(const move &move) noexcept
     {
         remove(to);
         rook_queen_.flip(squares);
+        hash_ ^= hashes::rook<side>(move.from()) ^ hashes::rook<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -367,6 +390,7 @@ void node::execute(const move &move) noexcept
     {
         remove(to);
         bishop_queen_.flip(squares);
+        hash_ ^= hashes::bishop<side>(move.from()) ^ hashes::bishop<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -381,6 +405,7 @@ void node::execute(const move &move) noexcept
     {
         remove(to);
         pawn_.flip(squares);
+        hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::pawn<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -397,6 +422,7 @@ void node::execute(const move &move) noexcept
         pawn_.flip(from);
         rook_queen_.flip(to);
         bishop_queen_.flip(to);
+        hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::queen<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -412,6 +438,7 @@ void node::execute(const move &move) noexcept
         remove(to);
         pawn_.flip(from);
         rook_queen_.flip(to);
+        hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::rook<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -427,6 +454,7 @@ void node::execute(const move &move) noexcept
         remove(to);
         pawn_.flip(from);
         bishop_queen_.flip(to);
+        hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::bishop<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -442,6 +470,7 @@ void node::execute(const move &move) noexcept
         remove(to);
         pawn_.flip(from);
         knight_.flip(to);
+        hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::knight<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -455,6 +484,7 @@ void node::execute(const move &move) noexcept
     const auto execute_double_push = [&]() noexcept
     {
         pawn_.flip(squares);
+        hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::pawn<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);
@@ -470,6 +500,7 @@ void node::execute(const move &move) noexcept
     const auto execute_en_passant = [&]() noexcept
     {
         pawn_.flip(squares);
+        hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::pawn<side>(move.to());
         if (side == WHITE)
         {
             white.flip(squares);

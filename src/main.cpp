@@ -17,18 +17,23 @@ int main(int argc, char *argv[])
   char command = argv[1][0];
   std::size_t depth = std::atoll(argv[2]);
   std::string_view fen = argc == 4 ? argv[3] : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
+  // std::size_t size = command == 't' ? 0 :  15'485'863;
+  std::size_t size = command == 't' ? 0 : 104'395'303;
+  // std::size_t size = command == 't' ? 0 : 256'203'221;
+  // std::size_t size = command == 't' ? 0 : 373'587'911;
+  // std::size_t size = command == 't' ? 0 : 512'927'377;
   try
   {
     std::locale::global(std::locale("en_US.UTF-8"));
+    table table(size);
     auto time0 = std::chrono::high_resolution_clock::now();
     std::size_t count;
     switch (command) {
       case 'd':
-        count = position{fen}.divide(depth);
+        count = position{fen}.divide(table, depth);
         break;
       case 'p':
-        count = position{fen}.perft(depth);
+        count = position{fen}.perft(table, depth);
         break;
       case 't':
         count = test::run("../epd/perft_long.txt", depth);

@@ -8,7 +8,7 @@ class test {
   std::array<std::size_t, 6> expected_;
   std::size_t index_;
 
-  test(std::string_view row, std::size_t index);
+  test(std::string_view epd, std::size_t index);
   std::expected<std::size_t, std::string> run(int depth) const noexcept;
 
 public:

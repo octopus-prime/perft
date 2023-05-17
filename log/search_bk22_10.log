@@ -1,0 +1,50 @@
+mike@Gamestation:~/workspace2/perft/build$ ./perft s 10 '2r2rk1/1bqnbpp1/1p1ppn1p/pP6/N1P1P3/P2B1N1P/1B2QPP1/R2R2K1 b - -'
+Loading NNUE : ../net/nn-04cf2b4ed1da.nnue
+NNUE loaded !
+i = 1
+s = -0.2
+m = Rf8d8
+
+i = 2
+s = 0.41
+m = Rc8d8
+
+i = 3
+s = -0.05
+m = Rf8e8
+
+i = 4
+s = 0.28
+m = Rf8d8
+
+i = 5
+s = -0.08
+m = Nf6h5
+
+i = 6
+s = 0.32
+m = Rf8e8
+
+i = 7
+s = -0.11
+m = Rf8e8
+
+i = 8
+s = -1.16
+m = Bb7e4
+
+i = 9
+s = -1.29
+m = Bb7e4
+
+i = 10
+s = -0.75
+m = Bb7e4
+
+s = -0.75
+m = Bb7e4
+n = 54,990,014
+t = 46.846
+p = 1,173,845
+
+mike@Gamestation:~/workspace2/perft/build$

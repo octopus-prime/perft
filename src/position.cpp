@@ -1,5 +1,8 @@
 #include "position.hpp"
 #include "table.hpp"
+#include "history.hpp"
+#include "transposition.hpp"
+#include <algorithm>
 #include <regex>
 #include <iostream>
 
@@ -140,7 +143,7 @@ std::size_t position::perft(const node &current, int depth) noexcept
 {
   std::size_t count = 0;
   std::array<move, 256> buffer;
-  auto moves = current.generate<side>(buffer);
+  auto moves = current.generate<side, node::all>(buffer);
   for (const auto &move : moves)
   {
     if (depth <= 1)
@@ -150,7 +153,7 @@ std::size_t position::perft(const node &current, int depth) noexcept
       node succ(current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
-      count += depth == 2 ? succ.generate<~side>(buffer2).size() : perft<~side>(succ, depth - 1);
+      count += depth == 2 ? succ.generate<~side, node::all>(buffer2).size() : perft<~side>(succ, depth - 1);
     }
   }
   return count;
@@ -169,7 +172,7 @@ std::size_t position::perft(const node &current, table& table, int depth) noexce
   }
   std::size_t count = 0;
   std::array<move, 256> buffer;
-  auto moves = current.generate<side>(buffer);
+  auto moves = current.generate<side, node::all>(buffer);
   for (const auto &move : moves)
   {
     if (depth <= 1)
@@ -179,7 +182,7 @@ std::size_t position::perft(const node &current, table& table, int depth) noexce
       node succ(current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
-      count += depth == 2 ? succ.generate<~side>(buffer2).size() : perft<~side>(succ, table, depth - 1);
+      count += depth == 2 ? succ.generate<~side, node::all>(buffer2).size() : perft<~side>(succ, table, depth - 1);
     }
   }
   table.put(current.hash<side>(), depth, count);
@@ -195,7 +198,7 @@ std::size_t position::divide(const node &current, int depth) noexcept
 {
   std::size_t count = 0;
   std::array<move, 256> buffer;
-  auto moves = current.generate<side>(buffer);
+  auto moves = current.generate<side, node::all>(buffer);
   for (const auto &move : moves)
   {
     std::size_t count_;
@@ -206,7 +209,7 @@ std::size_t position::divide(const node &current, int depth) noexcept
       node succ(current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
-      count_ = depth == 2 ? succ.generate<~side>(buffer2).size() : perft<~side>(succ, depth - 1);
+      count_ = depth == 2 ? succ.generate<~side, node::all>(buffer2).size() : perft<~side>(succ, depth - 1);
     }
     count += count_;
     std::cout << move << '\t' << count_ << std::endl;
@@ -223,7 +226,7 @@ std::size_t position::divide(const node &current, table& table, int depth) noexc
 {
   std::size_t count = 0;
   std::array<move, 256> buffer;
-  auto moves = current.generate<side>(buffer);
+  auto moves = current.generate<side, node::all>(buffer);
   for (const auto &move : moves)
   {
     std::size_t count_;
@@ -234,7 +237,7 @@ std::size_t position::divide(const node &current, table& table, int depth) noexc
       node succ(current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
-      count_ = depth == 2 ? succ.generate<~side>(buffer2).size() : perft<~side>(succ, table, depth - 1);
+      count_ = depth == 2 ? succ.generate<~side, node::all>(buffer2).size() : perft<~side>(succ, table, depth - 1);
     }
     count += count_;
     std::cout << move << '\t' << count_ << std::endl;
@@ -244,4 +247,212 @@ std::size_t position::divide(const node &current, table& table, int depth) noexc
 
 std::size_t position::divide(table& table, int depth) const noexcept {
   return side_ == WHITE ? divide<WHITE>(root_, table, depth) : divide<BLACK>(root_, table, depth);
+}
+
+int position::evaluate() noexcept {
+  return side_ == WHITE ? root_.evaluate<WHITE>() : -root_.evaluate<BLACK>();
+}
+
+std::size_t counter;
+history_t history;
+transposition_t transposition(104'395'303);
+
+template <side_t side>
+uint32_t score(node const& current, const move& move) noexcept {
+  if (!(current.occupied<~side>() & bitboard{move.to()}))
+    return 0;
+
+  uint32_t score = 0;
+  if (current.queen<~side>() & bitboard{move.to()})
+    score += 900;
+  if (current.rook<~side>() & bitboard{move.to()})
+    score += 500;
+  if (current.bishop<~side>() & bitboard{move.to()})
+    score += 350;
+  if (current.knight<~side>() & bitboard{move.to()})
+    score += 300;
+  if (current.pawn<~side>() & bitboard{move.to()})
+    score += 100;
+  switch (move.type()) {
+    case move::KING:
+      score -= 100;
+      break;
+    case move::QUEEN:
+      score -= 90;
+      break;
+    case move::ROOK:
+      score -= 50;
+      break;
+    case move::BISHOP:
+      score -= 35;
+      break;
+    case move::KNIGHT:
+      score -= 30;
+      break;
+    case move::PAWN:
+      score -= 10;
+      break;
+    case move::PROMOTE_QUEEN:
+      score += 900 - 10;
+      break;
+    case move::PROMOTE_ROOK:
+      score += 500 - 10;
+      break;
+    case move::PROMOTE_BISHOP:
+      score += 350 - 10;
+      break;
+    case move::PROMOTE_KNIGHT:
+      score += 300 - 10;
+      break;
+    case move::EN_PASSANT:
+      score += 100 - 10;
+      break;
+  }
+
+  return score;
+}
+
+template <side_t side>
+int position::search(node const& current, int alpha, int beta) noexcept {
+    // ++counter;
+	int eval = current.evaluate<side>();
+
+	if (eval >= beta)
+		return eval;
+	if (eval > alpha)
+		alpha = eval;
+
+  std::array<move, 256> buffer;
+	auto moves = current.generate<side, node::captures>(buffer);
+
+  std::array<uint32_t, 256> scores;
+  std::ranges::transform(moves, scores.begin(), [&current](const move& move) noexcept { return score<side>(current, move); });
+  std::ranges::sort(std::views::zip(moves, scores), [](auto&& lhs, auto&& rhs) noexcept { return std::get<1>(lhs) > std::get<1>(rhs); });
+
+	for (move const& move : moves) {
+    node succ(current);
+    succ.execute<side>(move);
+		int score = -search<~side>(succ, -beta, -alpha);
+		if (score >= beta)
+			return score;
+		if (score > alpha)
+			alpha = score;
+	}
+
+	return alpha;
+}
+
+
+template <side_t side>
+std::pair<int, move> position::search(const node &current, int alpha, int beta, int depth) noexcept {
+  ++counter;
+
+  if (depth == 0) {
+    int score = search<side>(current, alpha, beta);
+    return {score, {}};
+  }
+
+  std::array<move, 256> buffer;
+  auto moves = current.generate<side, node::all>(buffer);
+  if (moves.empty())
+    return {current.checkers<side>() ? -32000 : 0, {}};
+
+	// int oa = alpha;
+  move best;
+
+	const entry_t* const entry = transposition.get<side>(current);
+	if (entry)
+	{
+		if (entry->depth >= depth)
+		{
+			switch (entry->flag)
+			{
+			case flag_t::EXACT:
+				return {entry->score, entry->move};
+			case flag_t::LOWER:
+				if (entry->score > alpha)
+					alpha = entry->score;
+				break;
+			case flag_t::UPPER:
+				if (entry->score < beta)
+					beta = entry->score;
+				break;
+			default:
+				break;
+			}
+			if (alpha >= beta)
+				return {alpha, entry->move};
+		}
+		best = entry->move;
+	}
+
+	// if (best == move{} && depth > 2)
+	// 	best = std::get<1>(search<side>(current, alpha, beta, depth - 2));
+
+  std::array<uint32_t, 256> scores;
+  std::ranges::transform(moves, scores.begin(), [&current, &best](const move& move) noexcept {
+    if (move == best)
+      return std::numeric_limits<uint32_t>::max();
+
+    uint32_t score_ = score<side>(current, move) * 100'000;
+    return score_ + (uint32_t) history.get<side>(move);
+  });
+  std::ranges::sort(std::views::zip(moves, scores), [](auto&& lhs, auto&& rhs) noexcept { return std::get<1>(lhs) > std::get<1>(rhs); });
+
+  bool pv = false;
+  for (const auto &move : moves) {
+    history.put_all<side>(move, depth);
+    node succ(current);
+    succ.execute<side>(move);
+    int score;
+    if (!pv)
+      score = -std::get<0>(search<~side>(succ, -beta, -alpha, depth - 1));
+    else {
+      score = -std::get<0>(search<~side>(succ, -alpha - 1, -alpha, depth - 1));
+      if (score > alpha)
+        score = -std::get<0>(search<~side>(succ, -beta, -alpha, depth - 1));
+    }
+    if (score >= beta) {
+	    transposition.put<side>(current, move, beta, LOWER, depth);
+      history.put_good<side>(move, depth);
+      return {beta, move};
+    }
+    if (score > alpha) {
+      alpha = score;
+      best = move;
+      pv = true;
+    }
+  }
+
+	// flag_t flag = alpha >= beta ? LOWER : alpha == oa ? UPPER : EXACT;
+	// transposition.put<side>(current, best, alpha, flag, depth);
+
+  if (pv) {
+    history.put_good<side>(best, depth);
+	  transposition.put<side>(current, best, alpha, EXACT, depth);
+  } else {
+	  transposition.put<side>(current, best, alpha, UPPER, depth);
+  }
+
+  return {alpha, best};
+}
+
+std::pair<int, move> operator-(const std::pair<int, move>& pair) noexcept {
+  return {-pair.first, pair.second};
+}
+
+std::pair<int, move> position::search(int depth) noexcept {
+  counter = 0;
+  int alpha = -32000;
+  int beta  = +32000;
+  int score;
+  move move;
+  for (int i = 1; i <= depth; ++i) {
+    std::tie(score, move) = side_ == WHITE ? search<WHITE>(root_, alpha, beta, i) : -search<BLACK>(root_, alpha, beta, i);
+    std::cout << "i = " << i << std::endl;
+    std::cout << "s = " << score / 100.0 << std::endl;
+    std::cout << "m = " << move << std::endl;
+    std::cout << std::endl;
+  }
+  return {score, move};
 }

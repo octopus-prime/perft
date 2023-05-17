@@ -1,4 +1,5 @@
 #include "node.hpp"
+#include "nnue.hpp"
 #include <utility>
 
 static_assert(sizeof(node) == 80);
@@ -14,14 +15,15 @@ static_assert(node(0, "e2"_b, 0, 0, "e2"_b, 0, 0, 0, 0, 0).attackers<BLACK>() ==
 static_assert(node(0, "e2"_b, 0, 0, 0, "e2"_b, 0, 0, 0, 0).knight<BLACK>() == "e2"_b);
 static_assert(node(0, "e2"_b, 0, 0, 0, "e2"_b, 0, 0, 0, 0).attackers<BLACK>() == bitboards::knight("e2"_b));
 
-template <side_t side>
+template <side_t side, node::generation_t generation>
 std::span<move> node::generate(std::span<move, 256> moves) const noexcept
 {
     int index = 0;
 
     bitboard attacked = this->attackers<~side>();
     bitboard checkers = this->checkers<side>();
-    bitboard valids = ~0ull;
+    // bitboard valids = ~0ull;// generation == all ? bitboards::ALL : occupied<~side>();
+    bitboard valids = generation == all ? bitboards::ALL : occupied<~side>();
     bitboard validse = 0ull;
     bitboard pinned = 0ull;
     bitboard valid_for_pinned[64];
@@ -55,7 +57,7 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     const auto generate_king = [&]() noexcept
     {
         square from = king<side>().find();
-        bitboard targets = bitboards::king(from) & ~occupied<side>() & ~attacked;
+        bitboard targets = bitboards::king(from) & ~occupied<side>() & ~attacked & valids;
         for (square to : targets)
             moves[index++] = {move::KING, from, to};
     };
@@ -211,6 +213,10 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
         square from = king<side>().find();
         square to = checkers.find();
         valids = bitboards::line(from, to);
+        // valids = generation == all ? bitboards::line(from, to) : bitboard{bitboards::line(from, to) & occupied<~side>()};
+        // if (generation == captures) {
+        //     valids &= occupied<~side>();
+        // }
         if (side == BLACK)
         {
             if (checkers == en_passant << 8)
@@ -237,8 +243,11 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
     return moves.subspan(0, index);
 }
 
-template std::span<move> node::generate<WHITE>(std::span<move, 256> moves) const noexcept;
-template std::span<move> node::generate<BLACK>(std::span<move, 256> moves) const noexcept;
+template std::span<move> node::generate<WHITE, node::all>(std::span<move, 256> moves) const noexcept;
+template std::span<move> node::generate<BLACK, node::all>(std::span<move, 256> moves) const noexcept;
+
+template std::span<move> node::generate<WHITE, node::captures>(std::span<move, 256> moves) const noexcept;
+template std::span<move> node::generate<BLACK, node::captures>(std::span<move, 256> moves) const noexcept;
 
 template <side_t side>
 void node::execute(const move &move) noexcept
@@ -562,3 +571,75 @@ void node::execute(const move &move) noexcept
 
 template void node::execute<WHITE>(const move &move) noexcept;
 template void node::execute<BLACK>(const move &move) noexcept;
+
+template <side_t side>
+int node::evaluate() const noexcept {
+    int pieces[32];
+    int squares[32];
+    int index = 0;
+
+    pieces[index] = wking;
+    squares[index] = king<WHITE>().find();
+    ++index;
+    pieces[index] = bking;
+    squares[index] = king<BLACK>().find();
+    ++index;
+    for (square sq : queen<WHITE>()) {
+        pieces[index] = wqueen;
+        squares[index] = sq;
+        ++index;
+    }
+    for (square sq : queen<BLACK>()) {
+        pieces[index] = bqueen;
+        squares[index] = sq;
+        ++index;
+    }
+    for (square sq : rook<WHITE>()) {
+        pieces[index] = wrook;
+        squares[index] = sq;
+        ++index;
+    }
+    for (square sq : rook<BLACK>()) {
+        pieces[index] = brook;
+        squares[index] = sq;
+        ++index;
+    }
+    for (square sq : bishop<WHITE>()) {
+        pieces[index] = wbishop;
+        squares[index] = sq;
+        ++index;
+    }
+    for (square sq : bishop<BLACK>()) {
+        pieces[index] = bbishop;
+        squares[index] = sq;
+        ++index;
+    }
+    for (square sq : knight<WHITE>()) {
+        pieces[index] = wknight;
+        squares[index] = sq;
+        ++index;
+    }
+    for (square sq : knight<BLACK>()) {
+        pieces[index] = bknight;
+        squares[index] = sq;
+        ++index;
+    }
+    for (square sq : pawn<WHITE>()) {
+        pieces[index] = wpawn;
+        squares[index] = sq;
+        ++index;
+    }
+    for (square sq : pawn<BLACK>()) {
+        pieces[index] = bpawn;
+        squares[index] = sq;
+        ++index;
+    }
+
+    pieces[index] = 0;
+    squares[index] = 0;
+
+    return nnue_evaluate(side, pieces, squares);
+}
+
+template int node::evaluate<WHITE>() const noexcept;
+template int node::evaluate<BLACK>() const noexcept;

@@ -21,6 +21,8 @@ class node
     hash_t hash_;
 
 public:
+    enum generation_t {all, captures};
+
     constexpr node() noexcept = default;
 
     constexpr node(bitboard white, bitboard black, bitboard king, bitboard rook_queen, bitboard bishop_queen, bitboard knight, bitboard pawn, bitboard castle, bitboard en_passant, hash_t hash) noexcept
@@ -51,6 +53,21 @@ public:
     }
 
     template <side_t side>
+    constexpr bitboard queen() const noexcept {
+        return rook_queen_ & bishop_queen_ & occupied<side>();
+    }
+
+    template <side_t side>
+    constexpr bitboard rook() const noexcept {
+        return rook_queen_ & ~bishop_queen_ & occupied<side>();
+    }
+
+    template <side_t side>
+    constexpr bitboard bishop() const noexcept {
+        return bishop_queen_ & ~rook_queen_ & occupied<side>();
+    }
+
+    template <side_t side>
     constexpr bitboard knight() const noexcept {
         return knight_ & occupied<side>();
     }
@@ -74,11 +91,14 @@ public:
     template <side_t side>
     bitboard checkers() const noexcept;
 
-    template <side_t side>
+    template <side_t side, generation_t generation>
     std::span<move> generate(std::span<move, 256> moves) const noexcept;
 
     template <side_t side>
     void execute(const move& move) noexcept;
+
+    template <side_t side>
+    int evaluate() const noexcept;
 };
 
 template <side_t side>

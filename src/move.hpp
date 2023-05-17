@@ -32,6 +32,7 @@ public:
     constexpr type_t type() const noexcept { return type_; }
     constexpr square from() const noexcept { return from_; }
     constexpr square to() const noexcept { return to_; }
+    constexpr bool operator==(const move& other) const noexcept = default;
 };
 
 std::ostream& operator<<(std::ostream& stream, const move& move);

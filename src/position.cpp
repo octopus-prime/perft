@@ -150,7 +150,7 @@ std::size_t position::perft(const node &current, int depth) noexcept
       count += 1;
     else
     {
-      node succ(current);
+      node succ((node &) current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
       count += depth == 2 ? succ.generate<~side, node::all>(buffer2).size() : perft<~side>(succ, depth - 1);
@@ -179,7 +179,7 @@ std::size_t position::perft(const node &current, table& table, int depth) noexce
       count += 1;
     else
     {
-      node succ(current);
+      node succ((node &) current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
       count += depth == 2 ? succ.generate<~side, node::all>(buffer2).size() : perft<~side>(succ, table, depth - 1);
@@ -206,7 +206,7 @@ std::size_t position::divide(const node &current, int depth) noexcept
       count_ = 1;
     else
     {
-      node succ(current);
+      node succ((node &) current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
       count_ = depth == 2 ? succ.generate<~side, node::all>(buffer2).size() : perft<~side>(succ, depth - 1);
@@ -234,7 +234,7 @@ std::size_t position::divide(const node &current, table& table, int depth) noexc
       count_ = 1;
     else
     {
-      node succ(current);
+      node succ((node &) current);
       succ.execute<side>(move);
       std::array<struct move, 256> buffer2;
       count_ = depth == 2 ? succ.generate<~side, node::all>(buffer2).size() : perft<~side>(succ, table, depth - 1);
@@ -313,7 +313,7 @@ uint32_t score(node const& current, const move& move) noexcept {
 }
 
 template <side_t side>
-int position::search(node const& current, int alpha, int beta) noexcept {
+int position::search(node& current, int alpha, int beta) noexcept {
     // ++counter;
 	int eval = current.evaluate<side>();
 
@@ -344,7 +344,7 @@ int position::search(node const& current, int alpha, int beta) noexcept {
 
 
 template <side_t side>
-std::pair<int, move> position::search(const node &current, int alpha, int beta, int depth) noexcept {
+std::pair<int, move> position::search(node &current, int alpha, int beta, int depth) noexcept {
   ++counter;
 
   if (depth == 0) {
@@ -357,7 +357,6 @@ std::pair<int, move> position::search(const node &current, int alpha, int beta, 
   if (moves.empty())
     return {current.checkers<side>() ? -32000 : 0, {}};
 
-	// int oa = alpha;
   move best;
 
 	const entry_t* const entry = transposition.get<side>(current);
@@ -400,7 +399,10 @@ std::pair<int, move> position::search(const node &current, int alpha, int beta, 
   std::ranges::sort(std::views::zip(moves, scores), [](auto&& lhs, auto&& rhs) noexcept { return std::get<1>(lhs) > std::get<1>(rhs); });
 
   bool pv = false;
+  int index = 0;
   for (const auto &move : moves) {
+    ++index;
+    int reduction = 0;
     history.put_all<side>(move, depth);
     node succ(current);
     succ.execute<side>(move);
@@ -408,7 +410,9 @@ std::pair<int, move> position::search(const node &current, int alpha, int beta, 
     if (!pv)
       score = -std::get<0>(search<~side>(succ, -beta, -alpha, depth - 1));
     else {
-      score = -std::get<0>(search<~side>(succ, -alpha - 1, -alpha, depth - 1));
+      // if (depth > 3 && index > 6)//moves.size() / 3)
+      //   reduction = depth / 3;
+      score = -std::get<0>(search<~side>(succ, -alpha - 1, -alpha, depth - 1 - reduction));
       if (score > alpha)
         score = -std::get<0>(search<~side>(succ, -beta, -alpha, depth - 1));
     }
@@ -423,9 +427,6 @@ std::pair<int, move> position::search(const node &current, int alpha, int beta, 
       pv = true;
     }
   }
-
-	// flag_t flag = alpha >= beta ? LOWER : alpha == oa ? UPPER : EXACT;
-	// transposition.put<side>(current, best, alpha, flag, depth);
 
   if (pv) {
     history.put_good<side>(best, depth);

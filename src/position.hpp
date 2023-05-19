@@ -21,10 +21,10 @@ class position {
   static std::size_t divide(const node &current, table& table, int depth) noexcept;
 
   template <side_t side>
-  static int search(node const& current, int alpha, int beta) noexcept;
+  static int search(node& current, int alpha, int beta) noexcept;
 
   template <side_t side>
-  static std::pair<int, move> search(const node &current, int alpha, int beta, int depth) noexcept;
+  static std::pair<int, move> search(node &current, int alpha, int beta, int depth) noexcept;
 
 public:
   position();

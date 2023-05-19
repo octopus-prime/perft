@@ -2,7 +2,9 @@
 #include "nnue.hpp"
 #include <utility>
 
-static_assert(sizeof(node) == 80);
+#include <iostream>
+
+static_assert(sizeof(node) == 1280);
 static_assert(node("e2"_b, 0, 0, 0, 0, 0, 0, 0, 0, 0).occupied<WHITE>() == "e2"_b);
 static_assert(node(0, "e4"_b, 0, 0, 0, 0, 0, 0, 0, 0).occupied<BLACK>() == "e4"_b);
 static_assert(node("e2"_b, "e4"_b, 0, 0, 0, 0, 0, 0, 0, 0).occupied() == "e2e4"_b);
@@ -252,6 +254,8 @@ template std::span<move> node::generate<BLACK, node::captures>(std::span<move, 2
 template <side_t side>
 void node::execute(const move &move) noexcept
 {
+    nnue.dirtyPiece.dirtyNum = 1;
+
     const auto remove = [&](bitboard to) noexcept
     {
         bool r = rook_queen_ != rook_queen_.reset(to);
@@ -259,20 +263,42 @@ void node::execute(const move &move) noexcept
         switch(r + b * 2) {
         case 1:
             hash_ ^= hashes::rook<~side>(to.find());
+            nnue.dirtyPiece.dirtyNum = 2;
+            nnue.dirtyPiece.pc[1] = side == WHITE ? brook : wrook;
+            nnue.dirtyPiece.from[1] = move.to();
+            nnue.dirtyPiece.to[1] = 64;
             break;
         case 2:
             hash_ ^= hashes::bishop<~side>(to.find());
+            nnue.dirtyPiece.dirtyNum = 2;
+            nnue.dirtyPiece.pc[1] = side == WHITE ? bbishop : wbishop;
+            nnue.dirtyPiece.from[1] = move.to();
+            nnue.dirtyPiece.to[1] = 64;
             break;
         case 3:
             hash_ ^= hashes::queen<~side>(to.find());
+            nnue.dirtyPiece.dirtyNum = 2;
+            nnue.dirtyPiece.pc[1] = side == WHITE ? bqueen : wqueen;
+            nnue.dirtyPiece.from[1] = move.to();
+            nnue.dirtyPiece.to[1] = 64;
             break;
         default: 
             break;
         }
-        if (knight_ != knight_.reset(to))
+        if (knight_ != knight_.reset(to)) {
             hash_ ^= hashes::knight<~side>(to.find());
-        if (pawn_ != pawn_.reset(to))
+            nnue.dirtyPiece.dirtyNum = 2;
+            nnue.dirtyPiece.pc[1] = side == WHITE ? bknight : wknight;
+            nnue.dirtyPiece.from[1] = move.to();
+            nnue.dirtyPiece.to[1] = 64;
+        }
+        if (pawn_ != pawn_.reset(to)) {
             hash_ ^= hashes::pawn<~side>(to.find());
+            nnue.dirtyPiece.dirtyNum = 2;
+            nnue.dirtyPiece.pc[1] = side == WHITE ? bpawn : wpawn;
+            nnue.dirtyPiece.from[1] = move.to();
+            nnue.dirtyPiece.to[1] = 64;
+        }
         if (side == WHITE)
         {
             black.reset(to);
@@ -299,11 +325,17 @@ void node::execute(const move &move) noexcept
         {
             white.flip(squares);
             castle.reset("a1h1"_b);
+            nnue.dirtyPiece.pc[0] = wking;
+            nnue.dirtyPiece.from[0] = move.from();
+            nnue.dirtyPiece.to[0] = move.to();
         }
         else
         {
             black.flip(squares);
             castle.reset("a8h8"_b);
+            nnue.dirtyPiece.pc[0] = bking;
+            nnue.dirtyPiece.from[0] = move.from();
+            nnue.dirtyPiece.to[0] = move.to();
         }
     };
 
@@ -316,6 +348,13 @@ void node::execute(const move &move) noexcept
             white.flip("e1f1g1h1"_b);
             castle.reset("a1h1"_b);
             hash_ ^= hashes::king<side>("e1"_s) ^ hashes::king<side>("g1"_s) ^ hashes::rook<side>("h1"_s) ^ hashes::rook<side>("f1"_s);
+            nnue.dirtyPiece.dirtyNum = 2;
+            nnue.dirtyPiece.pc[0] = wking;
+            nnue.dirtyPiece.from[0] = "e1"_s;
+            nnue.dirtyPiece.to[0] = "g1"_s;
+            nnue.dirtyPiece.pc[1] = wrook;
+            nnue.dirtyPiece.from[1] = "h1"_s;
+            nnue.dirtyPiece.to[1] = "f1"_s;
         }
         else
         {
@@ -324,6 +363,13 @@ void node::execute(const move &move) noexcept
             black.flip("e8f8g8h8"_b);
             castle.reset("a8h8"_b);
             hash_ ^= hashes::king<side>("e8"_s) ^ hashes::king<side>("g8"_s) ^ hashes::rook<side>("h8"_s) ^ hashes::rook<side>("f8"_s);
+            nnue.dirtyPiece.dirtyNum = 2;
+            nnue.dirtyPiece.pc[0] = bking;
+            nnue.dirtyPiece.from[0] = "e8"_s;
+            nnue.dirtyPiece.to[0] = "g8"_s;
+            nnue.dirtyPiece.pc[1] = brook;
+            nnue.dirtyPiece.from[1] = "h8"_s;
+            nnue.dirtyPiece.to[1] = "f8"_s;
         }
     };
 
@@ -336,6 +382,13 @@ void node::execute(const move &move) noexcept
             white.flip("a1c1d1e1"_b);
             castle.reset("a1h1"_b);
             hash_ ^= hashes::king<side>("e1"_s) ^ hashes::king<side>("c1"_s) ^ hashes::rook<side>("a1"_s) ^ hashes::rook<side>("d1"_s);
+            nnue.dirtyPiece.dirtyNum = 2;
+            nnue.dirtyPiece.pc[0] = wking;
+            nnue.dirtyPiece.from[0] = "e1"_s;
+            nnue.dirtyPiece.to[0] = "c1"_s;
+            nnue.dirtyPiece.pc[1] = wrook;
+            nnue.dirtyPiece.from[1] = "a1"_s;
+            nnue.dirtyPiece.to[1] = "d1"_s;
         }
         else
         {
@@ -344,6 +397,13 @@ void node::execute(const move &move) noexcept
             black.flip("a8c8d8e8"_b);
             castle.reset("a8h8"_b);
             hash_ ^= hashes::king<side>("e8"_s) ^ hashes::king<side>("c8"_s) ^ hashes::rook<side>("a8"_s) ^ hashes::rook<side>("d8"_s);
+            nnue.dirtyPiece.dirtyNum = 2;
+            nnue.dirtyPiece.pc[0] = bking;
+            nnue.dirtyPiece.from[0] = "e8"_s;
+            nnue.dirtyPiece.to[0] = "c8"_s;
+            nnue.dirtyPiece.pc[1] = brook;
+            nnue.dirtyPiece.from[1] = "a8"_s;
+            nnue.dirtyPiece.to[1] = "d8"_s;
         }
     };
 
@@ -352,6 +412,9 @@ void node::execute(const move &move) noexcept
         remove(to);
         knight_.flip(squares);
         hash_ ^= hashes::knight<side>(move.from()) ^ hashes::knight<side>(move.to());
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wknight : bknight;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -368,6 +431,9 @@ void node::execute(const move &move) noexcept
         rook_queen_.flip(squares);
         bishop_queen_.flip(squares);
         hash_ ^= hashes::queen<side>(move.from()) ^ hashes::queen<side>(move.to());
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wqueen : bqueen;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -383,6 +449,9 @@ void node::execute(const move &move) noexcept
         remove(to);
         rook_queen_.flip(squares);
         hash_ ^= hashes::rook<side>(move.from()) ^ hashes::rook<side>(move.to());
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wrook : brook;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -400,6 +469,9 @@ void node::execute(const move &move) noexcept
         remove(to);
         bishop_queen_.flip(squares);
         hash_ ^= hashes::bishop<side>(move.from()) ^ hashes::bishop<side>(move.to());
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wbishop : bbishop;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -415,6 +487,9 @@ void node::execute(const move &move) noexcept
         remove(to);
         pawn_.flip(squares);
         hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::pawn<side>(move.to());
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wpawn : bpawn;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -432,6 +507,13 @@ void node::execute(const move &move) noexcept
         rook_queen_.flip(to);
         bishop_queen_.flip(to);
         hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::queen<side>(move.to());
+        nnue.dirtyPiece.dirtyNum = 3;
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wpawn : bpawn;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
+        nnue.dirtyPiece.pc[2] = side == WHITE ? wqueen : bqueen;
+        nnue.dirtyPiece.from[2] = 64;
+        nnue.dirtyPiece.to[2] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -448,6 +530,13 @@ void node::execute(const move &move) noexcept
         pawn_.flip(from);
         rook_queen_.flip(to);
         hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::rook<side>(move.to());
+        nnue.dirtyPiece.dirtyNum = 3;
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wpawn : bpawn;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
+        nnue.dirtyPiece.pc[2] = side == WHITE ? wrook : brook;
+        nnue.dirtyPiece.from[2] = 64;
+        nnue.dirtyPiece.to[2] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -464,6 +553,13 @@ void node::execute(const move &move) noexcept
         pawn_.flip(from);
         bishop_queen_.flip(to);
         hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::bishop<side>(move.to());
+        nnue.dirtyPiece.dirtyNum = 3;
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wpawn : bpawn;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
+        nnue.dirtyPiece.pc[2] = side == WHITE ? wbishop : bbishop;
+        nnue.dirtyPiece.from[2] = 64;
+        nnue.dirtyPiece.to[2] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -480,6 +576,13 @@ void node::execute(const move &move) noexcept
         pawn_.flip(from);
         knight_.flip(to);
         hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::knight<side>(move.to());
+        nnue.dirtyPiece.dirtyNum = 3;
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wpawn : bpawn;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
+        nnue.dirtyPiece.pc[2] = side == WHITE ? wknight : bknight;
+        nnue.dirtyPiece.from[2] = 64;
+        nnue.dirtyPiece.to[2] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -494,6 +597,9 @@ void node::execute(const move &move) noexcept
     {
         pawn_.flip(squares);
         hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::pawn<side>(move.to());
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wpawn : bpawn;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -510,6 +616,9 @@ void node::execute(const move &move) noexcept
     {
         pawn_.flip(squares);
         hash_ ^= hashes::pawn<side>(move.from()) ^ hashes::pawn<side>(move.to());
+        nnue.dirtyPiece.pc[0] = side == WHITE ? wpawn : bpawn;
+        nnue.dirtyPiece.from[0] = move.from();
+        nnue.dirtyPiece.to[0] = move.to();
         if (side == WHITE)
         {
             white.flip(squares);
@@ -573,73 +682,9 @@ template void node::execute<WHITE>(const move &move) noexcept;
 template void node::execute<BLACK>(const move &move) noexcept;
 
 template <side_t side>
-int node::evaluate() const noexcept {
-    int pieces[32];
-    int squares[32];
-    int index = 0;
-
-    pieces[index] = wking;
-    squares[index] = king<WHITE>().find();
-    ++index;
-    pieces[index] = bking;
-    squares[index] = king<BLACK>().find();
-    ++index;
-    for (square sq : queen<WHITE>()) {
-        pieces[index] = wqueen;
-        squares[index] = sq;
-        ++index;
-    }
-    for (square sq : queen<BLACK>()) {
-        pieces[index] = bqueen;
-        squares[index] = sq;
-        ++index;
-    }
-    for (square sq : rook<WHITE>()) {
-        pieces[index] = wrook;
-        squares[index] = sq;
-        ++index;
-    }
-    for (square sq : rook<BLACK>()) {
-        pieces[index] = brook;
-        squares[index] = sq;
-        ++index;
-    }
-    for (square sq : bishop<WHITE>()) {
-        pieces[index] = wbishop;
-        squares[index] = sq;
-        ++index;
-    }
-    for (square sq : bishop<BLACK>()) {
-        pieces[index] = bbishop;
-        squares[index] = sq;
-        ++index;
-    }
-    for (square sq : knight<WHITE>()) {
-        pieces[index] = wknight;
-        squares[index] = sq;
-        ++index;
-    }
-    for (square sq : knight<BLACK>()) {
-        pieces[index] = bknight;
-        squares[index] = sq;
-        ++index;
-    }
-    for (square sq : pawn<WHITE>()) {
-        pieces[index] = wpawn;
-        squares[index] = sq;
-        ++index;
-    }
-    for (square sq : pawn<BLACK>()) {
-        pieces[index] = bpawn;
-        squares[index] = sq;
-        ++index;
-    }
-
-    pieces[index] = 0;
-    squares[index] = 0;
-
-    return nnue_evaluate(side, pieces, squares);
+int node::evaluate() noexcept {
+    return nnue_evaluate_node<side>(*this);
 }
 
-template int node::evaluate<WHITE>() const noexcept;
-template int node::evaluate<BLACK>() const noexcept;
+template int node::evaluate<WHITE>() noexcept;
+template int node::evaluate<BLACK>() noexcept;

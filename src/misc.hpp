@@ -20,25 +20,25 @@ Force inline
 #   define INLINE  __inline
 #endif
 
-/*
-Intrinsic bsf
-*/
-#   if defined(__GNUC__)
-#       define bsf(b) __builtin_ctzll(b)
-#       define bsr(b) (63 - __builtin_clzll(b))
-#   elif defined(_WIN32)
-#       include <intrin.h>
-        INLINE int bsf(uint64_t b) {
-            unsigned long x;
-            _BitScanForward64(&x, b);
-            return (int) x;
-        }
-        INLINE int bsr(uint64_t b) {
-            unsigned long x;
-            _BitScanReverse64(&x, b);
-            return (int) x;
-        }
-#   endif
+// /*
+// Intrinsic bsf
+// */
+// #   if defined(__GNUC__)
+// #       define bsf(b) __builtin_ctzll(b)
+// #       define bsr(b) (63 - __builtin_clzll(b))
+// #   elif defined(_WIN32)
+// #       include <intrin.h>
+//         INLINE int bsf(uint64_t b) {
+//             unsigned long x;
+//             _BitScanForward64(&x, b);
+//             return (int) x;
+//         }
+//         INLINE int bsr(uint64_t b) {
+//             unsigned long x;
+//             _BitScanReverse64(&x, b);
+//             return (int) x;
+//         }
+// #   endif
 
 #ifdef _WIN32
 
@@ -72,4 +72,4 @@ INLINE uint16_t readu_le_u16(const void *p)
   return q[0] | (q[1] << 8);
 }
 
-#define clamp(a, b, c) ((a) < (b) ? (b) : (a) > (c) ? (c) : (a))
+// #define clamp(a, b, c) ((a) < (b) ? (b) : (a) > (c) ? (c) : (a))

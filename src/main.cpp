@@ -46,7 +46,6 @@ int main(int argc, char *argv[])
         count = test::run("../epd/perft_long.txt", depth);
         break;
       case 'e':
-        // score = nnue_evaluate_fen(fen.data());
         score = position{fen}.evaluate();
         count = 1;
         break;

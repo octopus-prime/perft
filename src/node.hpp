@@ -7,6 +7,8 @@
 #include "move.hpp"
 #include "side.hpp"
 
+#include "nnue.hpp"
+
 class node
 {
     bitboard white;
@@ -19,14 +21,30 @@ class node
     bitboard castle;
     bitboard en_passant;
     hash_t hash_;
+    node* parent_;
 
 public:
+    NNUEdata nnue;
+
     enum generation_t {all, captures};
 
     constexpr node() noexcept = default;
 
     constexpr node(bitboard white, bitboard black, bitboard king, bitboard rook_queen, bitboard bishop_queen, bitboard knight, bitboard pawn, bitboard castle, bitboard en_passant, hash_t hash) noexcept
-        : white(white), black(black), king_(king), rook_queen_(rook_queen), bishop_queen_(bishop_queen), knight_(knight), pawn_(pawn), castle(castle), en_passant(en_passant), hash_(hash) {}
+        : white(white), black(black), king_(king), rook_queen_(rook_queen), bishop_queen_(bishop_queen), knight_(knight), pawn_(pawn), castle(castle), en_passant(en_passant), hash_(hash), parent_(nullptr) {
+            nnue.accumulator.computedAccumulation = 0;
+            nnue.dirtyPiece.dirtyNum = 0;
+        }
+
+    constexpr node(node& parent) noexcept
+        : white(parent.white), black(parent.black), king_(parent.king_), rook_queen_(parent.rook_queen_), bishop_queen_(parent.bishop_queen_), knight_(parent.knight_), pawn_(parent.pawn_), castle(parent.castle), en_passant(0), hash_(parent.hash_), parent_(&parent) {
+            nnue.accumulator.computedAccumulation = 0;
+            nnue.dirtyPiece.dirtyNum = 0;
+        }
+
+    constexpr node* parent() const noexcept {
+        return parent_;
+    }
 
     constexpr bitboard occupied() const noexcept {
         return white | black;
@@ -52,9 +70,13 @@ public:
         return bishop_queen_ & occupied<side>();
     }
 
+    constexpr bitboard queen() const noexcept {
+        return rook_queen_ & bishop_queen_;
+    }
+
     template <side_t side>
     constexpr bitboard queen() const noexcept {
-        return rook_queen_ & bishop_queen_ & occupied<side>();
+        return queen() & occupied<side>();
     }
 
     template <side_t side>
@@ -70,6 +92,10 @@ public:
     template <side_t side>
     constexpr bitboard knight() const noexcept {
         return knight_ & occupied<side>();
+    }
+
+    constexpr bitboard pawn() const noexcept {
+        return pawn_;
     }
 
     template <side_t side>
@@ -98,7 +124,7 @@ public:
     void execute(const move& move) noexcept;
 
     template <side_t side>
-    int evaluate() const noexcept;
+    int evaluate() noexcept;
 };
 
 template <side_t side>

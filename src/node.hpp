@@ -6,7 +6,6 @@
 #include "hashes.hpp"
 #include "move.hpp"
 #include "side.hpp"
-
 #include "nnue.hpp"
 
 class node

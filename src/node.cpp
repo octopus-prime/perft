@@ -2,8 +2,6 @@
 #include "nnue.hpp"
 #include <utility>
 
-#include <iostream>
-
 static_assert(sizeof(node) == 1280);
 static_assert(node("e2"_b, 0, 0, 0, 0, 0, 0, 0, 0, 0).occupied<WHITE>() == "e2"_b);
 static_assert(node(0, "e4"_b, 0, 0, 0, 0, 0, 0, 0, 0).occupied<BLACK>() == "e4"_b);
@@ -24,7 +22,6 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
 
     bitboard attacked = this->attackers<~side>();
     bitboard checkers = this->checkers<side>();
-    // bitboard valids = ~0ull;// generation == all ? bitboards::ALL : occupied<~side>();
     bitboard valids = generation == all ? bitboards::ALL : occupied<~side>();
     bitboard validse = 0ull;
     bitboard pinned = 0ull;
@@ -215,10 +212,6 @@ std::span<move> node::generate(std::span<move, 256> moves) const noexcept
         square from = king<side>().find();
         square to = checkers.find();
         valids = bitboards::line(from, to);
-        // valids = generation == all ? bitboards::line(from, to) : bitboard{bitboards::line(from, to) & occupied<~side>()};
-        // if (generation == captures) {
-        //     valids &= occupied<~side>();
-        // }
         if (side == BLACK)
         {
             if (checkers == en_passant << 8)

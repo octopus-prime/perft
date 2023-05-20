@@ -4,6 +4,7 @@
 #include "transposition.hpp"
 #include <algorithm>
 #include <regex>
+#include <format>
 #include <iostream>
 
 position::position() :
@@ -259,7 +260,7 @@ transposition_t transposition(104'395'303);
 
 template <side_t side>
 uint32_t score(node const& current, const move& move) noexcept {
-  if (!(current.occupied<~side>() & bitboard{move.to()}))
+  if (!(current.occupied<~side>() & bitboard{move.to()}) && move.type() < move::PROMOTE_QUEEN)
     return 0;
 
   uint32_t score = 0;
@@ -275,37 +276,37 @@ uint32_t score(node const& current, const move& move) noexcept {
     score += 100;
   switch (move.type()) {
     case move::KING:
-      score -= 100;
-      break;
-    case move::QUEEN:
-      score -= 90;
-      break;
-    case move::ROOK:
-      score -= 50;
-      break;
-    case move::BISHOP:
-      score -= 35;
-      break;
-    case move::KNIGHT:
-      score -= 30;
-      break;
-    case move::PAWN:
       score -= 10;
       break;
+    case move::QUEEN:
+      score -= 9;
+      break;
+    case move::ROOK:
+      score -= 5;
+      break;
+    case move::BISHOP:
+      score -= 4;
+      break;
+    case move::KNIGHT:
+      score -= 3;
+      break;
+    case move::PAWN:
+      score -= 1;
+      break;
     case move::PROMOTE_QUEEN:
-      score += 900 - 10;
+      score += 900 - 100;
       break;
     case move::PROMOTE_ROOK:
-      score += 500 - 10;
+      score += 500 - 100;
       break;
     case move::PROMOTE_BISHOP:
-      score += 350 - 10;
+      score += 350 - 100;
       break;
     case move::PROMOTE_KNIGHT:
-      score += 300 - 10;
+      score += 300 - 100;
       break;
     case move::EN_PASSANT:
-      score += 100 - 10;
+      score += 100;
       break;
   }
 
@@ -318,7 +319,13 @@ int position::search(node& current, int alpha, int beta) noexcept {
 	int eval = current.evaluate<side>();
 
 	if (eval >= beta)
-		return eval;
+		return beta;
+  int delta = 1200;
+  constexpr bitboard rank = side == WHITE ? "7"_r : "2"_r;
+  if (current.pawn<side>() & rank)
+    delta += 800;
+	if (eval < alpha - delta)
+		return alpha;
 	if (eval > alpha)
 		alpha = eval;
 
@@ -327,7 +334,7 @@ int position::search(node& current, int alpha, int beta) noexcept {
 
   std::array<uint32_t, 256> scores;
   std::ranges::transform(moves, scores.begin(), [&current](const move& move) noexcept { return score<side>(current, move); });
-  std::ranges::sort(std::views::zip(moves, scores), [](auto&& lhs, auto&& rhs) noexcept { return std::get<1>(lhs) > std::get<1>(rhs); });
+  std::ranges::sort(std::views::zip(moves, scores), std::greater{}, [](auto&& tuple) noexcept { return std::get<1>(tuple); });
 
 	for (move const& move : moves) {
     node succ(current);
@@ -347,6 +354,9 @@ template <side_t side>
 std::pair<int, move> position::search(node &current, int alpha, int beta, int depth) noexcept {
   ++counter;
 
+  bool check = current.checkers<side>();
+  depth += check;
+
   if (depth == 0) {
     int score = search<side>(current, alpha, beta);
     return {score, {}};
@@ -355,7 +365,7 @@ std::pair<int, move> position::search(node &current, int alpha, int beta, int de
   std::array<move, 256> buffer;
   auto moves = current.generate<side, node::all>(buffer);
   if (moves.empty())
-    return {current.checkers<side>() ? -32000 : 0, {}};
+    return {check ? -32000 : 0, {}};
 
   move best;
 
@@ -396,7 +406,7 @@ std::pair<int, move> position::search(node &current, int alpha, int beta, int de
     uint32_t score_ = score<side>(current, move) * 100'000;
     return score_ + (uint32_t) history.get<side>(move);
   });
-  std::ranges::sort(std::views::zip(moves, scores), [](auto&& lhs, auto&& rhs) noexcept { return std::get<1>(lhs) > std::get<1>(rhs); });
+  std::ranges::sort(std::views::zip(moves, scores), std::greater{}, [](auto&& tuple) noexcept { return std::get<1>(tuple); });
 
   bool pv = false;
   int index = 0;
@@ -407,11 +417,11 @@ std::pair<int, move> position::search(node &current, int alpha, int beta, int de
     node succ(current);
     succ.execute<side>(move);
     int score;
-    if (!pv)
+    if (!pv || check)
       score = -std::get<0>(search<~side>(succ, -beta, -alpha, depth - 1));
     else {
-      // if (depth > 3 && index > 6)//moves.size() / 3)
-      //   reduction = depth / 3;
+      if (depth > 3 && index > 6)//moves.size() / 3)
+        reduction = depth / 3;
       score = -std::get<0>(search<~side>(succ, -alpha - 1, -alpha, depth - 1 - reduction));
       if (score > alpha)
         score = -std::get<0>(search<~side>(succ, -beta, -alpha, depth - 1));
@@ -444,16 +454,18 @@ std::pair<int, move> operator-(const std::pair<int, move>& pair) noexcept {
 
 std::pair<int, move> position::search(int depth) noexcept {
   counter = 0;
-  int alpha = -32000;
-  int beta  = +32000;
-  int score;
+  int score = 0; //side_ == WHITE ? root_.evaluate<WHITE>() : root_.evaluate<BLACK>();
   move move;
   for (int i = 1; i <= depth; ++i) {
+    int alpha = -32000;// score - 100;
+    int beta  = +32000;// score + 100;
     std::tie(score, move) = side_ == WHITE ? search<WHITE>(root_, alpha, beta, i) : -search<BLACK>(root_, alpha, beta, i);
-    std::cout << "i = " << i << std::endl;
-    std::cout << "s = " << score / 100.0 << std::endl;
-    std::cout << "m = " << move << std::endl;
-    std::cout << std::endl;
+    // if (score <= alpha || score >= beta) {
+    //   alpha = -32000;
+    //   beta  = +32000;
+    //   std::tie(score, move) = side_ == WHITE ? search<WHITE>(root_, alpha, beta, i) : -search<BLACK>(root_, alpha, beta, i);
+    // }
+    std::cout << std::format("d = {:2d}, s = {:6.2f}, m = ", i , score / 100.0) << move << std::endl;
   }
   return {score, move};
 }

@@ -51,6 +51,7 @@ size_t test::run(std::string_view file, int depth) {
       workers.emplace_back([depth, &input, &count]() noexcept {
         char epd[256];
         while (auto index = input.read(epd) != 0) {
+          // std::cout << epd << std::endl;
           const auto result = test{epd, index}.run(depth);
           if (result.has_value())
             count += result.value();

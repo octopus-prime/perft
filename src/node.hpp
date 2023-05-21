@@ -21,6 +21,7 @@ class node
     bitboard en_passant;
     hash_t hash_;
     node* parent_;
+    const move* move_;
 
 public:
     NNUEdata nnue;
@@ -30,19 +31,23 @@ public:
     constexpr node() noexcept = default;
 
     constexpr node(bitboard white, bitboard black, bitboard king, bitboard rook_queen, bitboard bishop_queen, bitboard knight, bitboard pawn, bitboard castle, bitboard en_passant, hash_t hash) noexcept
-        : white(white), black(black), king_(king), rook_queen_(rook_queen), bishop_queen_(bishop_queen), knight_(knight), pawn_(pawn), castle(castle), en_passant(en_passant), hash_(hash), parent_(nullptr) {
+        : white(white), black(black), king_(king), rook_queen_(rook_queen), bishop_queen_(bishop_queen), knight_(knight), pawn_(pawn), castle(castle), en_passant(en_passant), hash_(hash), parent_(nullptr), move_(nullptr) {
             nnue.accumulator.computedAccumulation = 0;
             nnue.dirtyPiece.dirtyNum = 0;
         }
 
     constexpr node(node& parent) noexcept
-        : white(parent.white), black(parent.black), king_(parent.king_), rook_queen_(parent.rook_queen_), bishop_queen_(parent.bishop_queen_), knight_(parent.knight_), pawn_(parent.pawn_), castle(parent.castle), en_passant(0), hash_(parent.hash_), parent_(&parent) {
+        : white(parent.white), black(parent.black), king_(parent.king_), rook_queen_(parent.rook_queen_), bishop_queen_(parent.bishop_queen_), knight_(parent.knight_), pawn_(parent.pawn_), castle(parent.castle), en_passant(0), hash_(parent.hash_), parent_(&parent), move_(nullptr) {
             nnue.accumulator.computedAccumulation = 0;
             nnue.dirtyPiece.dirtyNum = 0;
         }
 
     constexpr node* parent() const noexcept {
         return parent_;
+    }
+
+    constexpr const move* moved() const noexcept {
+        return move_;
     }
 
     constexpr bitboard occupied() const noexcept {
@@ -121,6 +126,16 @@ public:
 
     template <side_t side>
     void execute(const move& move) noexcept;
+
+    // template <side_t side>
+    std::pair<bitboard, const move*> execute(bitboard en_passant, const move* move) noexcept {
+        auto e = this->en_passant;
+        auto m = this->move_;
+        this->en_passant = en_passant;
+        this->move_ = move;
+        // nnue.accumulator.computedAccumulation = 0;
+        return {e, m};
+    }
 
     template <side_t side>
     int evaluate() noexcept;

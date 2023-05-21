@@ -6,6 +6,7 @@
 #include <regex>
 #include <format>
 #include <iostream>
+#include <cmath>
 
 position::position() :
   root_{
@@ -45,69 +46,70 @@ position::position(std::string_view fen)
       if (std::isdigit(ch))
         j += ch - '0';
       else {
-        uint64_t b = 1ull << (8 * i + j);
+        auto s = 8 * i + j;
+        uint64_t b = 1ull << s;
         switch (ch) {
         case 'K':
           king |= b;
           white |= b;
-          hash ^= hashes::king<WHITE>(b);
+          hash ^= hashes::king<WHITE>(s);
           break;
         case 'k':
           king |= b;
           black |= b;
-          hash ^= hashes::king<BLACK>(b);
+          hash ^= hashes::king<BLACK>(s);
           break;
         case 'Q':
           rook_queen |= b;
           bishop_queen |= b;
           white |= b;
-          hash ^= hashes::queen<WHITE>(b);
+          hash ^= hashes::queen<WHITE>(s);
           break;
         case 'q':
           rook_queen |= b;
           bishop_queen |= b;
           black |= b;
-          hash ^= hashes::queen<BLACK>(b);
+          hash ^= hashes::queen<BLACK>(s);
           break;
         case 'R':
           rook_queen |= b;
           white |= b;
-          hash ^= hashes::rook<WHITE>(b);
+          hash ^= hashes::rook<WHITE>(s);
           break;
         case 'r':
           rook_queen |= b;
           black |= b;
-          hash ^= hashes::rook<BLACK>(b);
+          hash ^= hashes::rook<BLACK>(s);
           break;
         case 'B':
           bishop_queen |= b;
           white |= b;
-          hash ^= hashes::bishop<WHITE>(b);
+          hash ^= hashes::bishop<WHITE>(s);
           break;
         case 'b':
           bishop_queen |= b;
           black |= b;
-          hash ^= hashes::bishop<BLACK>(b);
+          hash ^= hashes::bishop<BLACK>(s);
           break;
         case 'N':
           knight |= b;
           white |= b;
-          hash ^= hashes::knight<WHITE>(b);
+          hash ^= hashes::knight<WHITE>(s);
           break;
         case 'n':
           knight |= b;
           black |= b;
-          hash ^= hashes::knight<BLACK>(b);
+          hash ^= hashes::knight<BLACK>(s);
           break;
         case 'P':
           pawn |= b;
           white |= b;
-          hash ^= hashes::pawn<WHITE>(b);
+          hash ^= hashes::pawn<WHITE>(s);
           break;
         case 'p':
           pawn |= b;
           black |= b;
-          hash ^= hashes::pawn<BLACK>(b);
+          hash ^= hashes::pawn<BLACK>(s);
           break;
         }
         ++j;
@@ -247,6 +249,7 @@ std::size_t position::divide(const node &current, table& table, int depth) noexc
 }
 
 std::size_t position::divide(table& table, int depth) const noexcept {
+  std::cout << "los gehts" << std::endl;
   return side_ == WHITE ? divide<WHITE>(root_, table, depth) : divide<BLACK>(root_, table, depth);
 }
 
@@ -349,6 +352,13 @@ int position::search(node& current, int alpha, int beta) noexcept {
 	return alpha;
 }
 
+template <side_t side>
+inline bool
+try_null(const node& node) noexcept {
+	return node.occupied<side>().count() > 3
+		&& (node.knight<side>() | node.bishop_queen<side>() | node.rook_queen<side>());
+//		&& !(node.attack<other_tag>() & detail::attacker<king_tag, color_tag>::attack(node.occupy<king_tag, color_tag>()));
+}
 
 template <side_t side>
 std::pair<int, move> position::search(node &current, int alpha, int beta, int depth) noexcept {
@@ -390,13 +400,27 @@ std::pair<int, move> position::search(node &current, int alpha, int beta, int de
 				break;
 			}
 			if (alpha >= beta)
-				return {alpha, entry->move};
+				return {beta, entry->move};
 		}
 		best = entry->move;
 	}
 
-	// if (best == move{} && depth > 2)
-	// 	best = std::get<1>(search<side>(current, alpha, beta, depth - 2));
+	const std::uint_fast8_t reduction = 2 + (depth > 6);
+	const bool skip = entry && entry->depth > depth - reduction && entry->score < beta && entry->flag == flag_t::UPPER;
+	if (depth > reduction  && current.moved() != nullptr  && !check && try_null<side>(current) && !skip) {
+    // node succ(current);
+    auto [e, m] = current.execute(0, nullptr);
+		int score = -std::get<0>(search<~side>(current, -beta, -beta + 1, depth - reduction));
+    current.execute(e, m);
+    if (score >= beta) {
+		  score = std::get<0>(search<side>(current, beta - 1, beta, depth - reduction));
+      if (score >= beta)
+  			return { beta, {} };
+    }
+	}
+
+	if (best == move{} && depth > 2)
+		best = std::get<1>(search<side>(current, alpha, beta, depth - 2));
 
   std::array<uint32_t, 256> scores;
   std::ranges::transform(moves, scores.begin(), [&current, &best](const move& move) noexcept {
@@ -417,13 +441,14 @@ std::pair<int, move> position::search(node &current, int alpha, int beta, int de
     node succ(current);
     succ.execute<side>(move);
     int score;
-    if (!pv || check)
+    bool capture = current.occupied<~side>() & bitboard{move.to()};
+    if (!pv || check || succ.checkers<~side>() || capture)
       score = -std::get<0>(search<~side>(succ, -beta, -alpha, depth - 1));
     else {
-      if (depth > 3 && index > 6)//moves.size() / 3)
-        reduction = depth / 3;
+      if (/*depth > 3 &&*/ index > moves.size() / 2)
+        reduction += depth / 3;
       score = -std::get<0>(search<~side>(succ, -alpha - 1, -alpha, depth - 1 - reduction));
-      if (score > alpha)
+      if (score > alpha)// && score < beta)
         score = -std::get<0>(search<~side>(succ, -beta, -alpha, depth - 1));
     }
     if (score >= beta) {

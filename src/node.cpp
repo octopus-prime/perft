@@ -247,6 +247,7 @@ template std::span<move> node::generate<BLACK, node::captures>(std::span<move, 2
 template <side_t side>
 void node::execute(const move &move) noexcept
 {
+    move_ = &move;
     nnue.dirtyPiece.dirtyNum = 1;
 
     const auto remove = [&](bitboard to) noexcept

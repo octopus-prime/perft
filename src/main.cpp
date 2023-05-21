@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
     move move;
     switch (command) {
       case 'd':
+        std::cout << "pre cum" << std::endl;
         count = position{fen}.divide(table, depth);
         break;
       case 'p':

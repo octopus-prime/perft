@@ -1,62 +1,23 @@
 mike@Gamestation:~/workspace2/perft/build$ ./perft s 13 '2r3k1/pppR1pp1/4p3/4P1P1/5P2/1P4K1/P1P5/8 w - -'
 Loading NNUE : ../net/nn-04cf2b4ed1da.nnue
 NNUE loaded !
-i = 1
-s = 3.43
-m = Kg3g4
-
-i = 2
-s = 2.41
-m = Kg3h4
-
-i = 3
-s = 3.68
-m = Kg3f3
-
-i = 4
-s = 3.18
+d =  1, s =   3.43, m = Kg3g4
+d =  2, s =   2.41, m = Kg3h4
+d =  3, s =   3.36, m = Kg3g4
+d =  4, s =   3.18, m = Pg5g6
+d =  5, s =   3.19, m = Kg3g4
+d =  6, s =   3.90, m = Pg5g6
+d =  7, s =   4.09, m = Pg5g6
+d =  8, s =   4.09, m = Pg5g6
+d =  9, s =   4.66, m = Pg5g6
+d = 10, s =   4.66, m = Pg5g6
+d = 11, s =   4.66, m = Pg5g6
+d = 12, s =   4.51, m = Pg5g6
+d = 13, s =   4.57, m = Pg5g6
+s = 4.57
 m = Pg5g6
-
-i = 5
-s = 3.19
-m = Kg3g4
-
-i = 6
-s = 4.09
-m = Pg5g6
-
-i = 7
-s = 3.9
-m = Pg5g6
-
-i = 8
-s = 4.09
-m = Pg5g6
-
-i = 9
-s = 4.23
-m = Pg5g6
-
-i = 10
-s = 4.66
-m = Pg5g6
-
-i = 11
-s = 4.66
-m = Pg5g6
-
-i = 12
-s = 4.66
-m = Pg5g6
-
-i = 13
-s = 4.65
-m = Pg5g6
-
-s = 4.65
-m = Pg5g6
-n = 25,641,618
-t = 8.57056
-p = 2,991,826
+n = 2,017,990
+t = 0.675234
+p = 2,988,579
 
 mike@Gamestation:~/workspace2/perft/build$

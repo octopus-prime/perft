@@ -14,6 +14,7 @@ class table {
     std::vector<entry> entries_;
 
 public:
+    constexpr table() : entries_() { /*clear();*/ }
     table(std::size_t size) : entries_(size) { /*clear();*/ }
 
     // void clear() noexcept {
@@ -23,6 +24,10 @@ public:
     //         e.depth = 0;
     //     }
     // }
+
+    constexpr bool empty() const noexcept {
+        return entries_.empty();
+    }
 
     void put(hash_t hash, int depth, std::size_t count) noexcept {
         entry& e = entries_[hash % entries_.size()];

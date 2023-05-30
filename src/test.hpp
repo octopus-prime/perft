@@ -9,8 +9,8 @@ class test {
   std::size_t index_;
 
   test(std::string_view epd, std::size_t index);
-  std::expected<std::size_t, std::string> run(int depth) const noexcept;
+  std::expected<std::size_t, std::string> run(int depth) noexcept;
 
 public:
-  static std::size_t run(std::string_view file, int depth);
+  static void run(std::string_view file, int depth);
 };

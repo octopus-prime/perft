@@ -1,4 +1,5 @@
 #include "test.hpp"
+#include "perft.hpp"
 #include <atomic>
 #include <regex>
 #include <thread>
@@ -18,8 +19,10 @@ test::test(std::string_view epd, std::size_t index) {
   index_ = index;
 }
 
-std::expected<size_t, std::string> test::run(int depth) const noexcept {
-  size_t count = position_.perft(depth);
+std::expected<size_t, std::string> test::run(int depth) noexcept {
+  perft_t<false> command{false};
+  position_.execute(command, depth);
+  size_t count = command.counter();
   if (count != expected_[depth - 1])
     return std::unexpected(std::format("kaputtnik: l={}, d={}, n={}, e={}", index_, depth, count, expected_[depth - 1]));
   return count;
@@ -42,9 +45,11 @@ public:
   }
 };
 
-size_t test::run(std::string_view file, int depth) {
+void test::run(std::string_view file, int depth) {
+  using as_floating_point = std::chrono::duration<double, std::ratio<1>>;
   blocking_input input{file};
   std::atomic_size_t count{0};
+  auto time0 = std::chrono::high_resolution_clock::now();
   {
     std::vector<std::jthread> workers{};
     for (int i = 0; i < std::jthread::hardware_concurrency(); ++i) {
@@ -61,5 +66,7 @@ size_t test::run(std::string_view file, int depth) {
       });
     }
   }
-  return count;
+  auto time1 = std::chrono::high_resolution_clock::now();
+  auto time = duration_cast<as_floating_point>(time1 - time0).count();
+  std::cout << std::format("{:7.3f} {:16L} {:16L}", time, size_t(count), size_t(count / time)) << std::endl;
 }

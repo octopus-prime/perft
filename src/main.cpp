@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
   if (argc != 3 && argc != 4)
   {
     std::cerr << "Usage: " << argv[0] << " <command> <depth> [<fen>]" << std::endl;
-    std::cerr << "Commands: " << "p[erft] | d[ivide] | t[est]" << std::endl;
+    std::cerr << "Commands: " << "p[erft] | d[ivide] | s[earch] | t[est]" << std::endl;
     return 1;
   }
 
